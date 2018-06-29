@@ -65,6 +65,7 @@ type ClusterSpec struct {
 	AzureKubernetesServiceConfig         *AzureKubernetesServiceConfig        `json:"azureKubernetesServiceConfig,omitempty"`
 	RancherKubernetesEngineConfig        *RancherKubernetesEngineConfig       `json:"rancherKubernetesEngineConfig,omitempty"`
 	AmazonElasticContainerServiceConfig  *AmazonElasticContainerServiceConfig `json:"amazonElasticContainerServiceConfig,omitempty"`
+	HuaweiCloudContainerEngineConfig     *HuaweiCloudContainerEngineCongfig   `json:"huaweiCloudContainerEngineConfig,omitempty"`
 	DefaultPodSecurityPolicyTemplateName string                               `json:"defaultPodSecurityPolicyTemplateName,omitempty" norman:"type=reference[podSecurityPolicyTemplate]"`
 	DefaultClusterRoleForProjectMembers  string                               `json:"defaultClusterRoleForProjectMembers,omitempty" norman:"type=reference[roleTemplate]"`
 }
@@ -159,6 +160,77 @@ type GoogleKubernetesEngineConfig struct {
 	SubNetwork string `json:"subNetwork,omitempty"`
 	// Configuration for LegacyAbac
 	EnableLegacyAbac bool `json:"enableLegacyAbac,omitempty"`
+}
+
+type HuaweiCloudContainerEngineCongfig struct {
+	// ProjectID is the ID of your project to use when creating a cluster
+	ProjectID string `json:"projectId,omitempty" norman:"required"`
+	// The zone to launch the cluster
+	Zone string `json:"zone,omitempty" norman:"required"`
+	// An optional description of this cluster
+	Description string `json:"description,omitempty"`
+	// The id to access the cce
+	AccessKey string `json:"accessKey,omitempty" norman:"required"`
+	// The key to access the cce
+	SecretKey string `json:"secretKey,omitempty" norman:"required,type=password"`
+	// The cluster type, VirtualMachine or BareMetal
+	ClusterType string `json:"clusterType,omitempty" norman:"required"`
+	// The cluster flavor
+	ClusterFlavor string `json:"clusterFlavor,omitempty" norman:"required"`
+	// The cluster version, k8s version
+	MasterVersion string `json:"masterVersion,omitempty" norman:"required"`
+	// VpcId is the host network which the cluster use
+	VpcId string `json:"vpcId,omitempty"`
+	// Subnet is the host network which the cluster use
+	SubnetId string `json:"subnetId,omitempty"`
+	// HighwaySubnet is the host network which the cluster use when the ClusterType is BareMetal
+	HighwaySubnet string `json:"highwaySubnet,omitempty"`
+	// The map of Kubernetes labels (key/value pairs) to be applied to cluster
+	Labels map[string]string `json:"labels,omitempty"`
+	// NodeFlavor is the node flavor
+	NodeFlavor string `json:"nodeFlavor,omitempty"`
+	//The available zone which the nodes are in
+	AvailableZone string `json:"availableZone,omitempty" norman:"required"`
+	//The name of ssh key-pair
+	SshKey string `json:"sshKey,omitempty" norman:"required"`
+	//The system disk volume size
+	RootVolumeSize int64 `json:"rootVolumeSize,omitempty"`
+	//The system disk type, SATA, SAS, SSD
+	RootVolumeType string `json:"rootVolumeType,omitempty"`
+	//The data disk volume size
+	DataVolumeSize int64 `json:"dataVolumeSize,omitempty"`
+	//The data disk type, SATA, SAS, SSD
+	DataVolumeType string `json:"dataVolumeType,omitempty"`
+	//The bill mode of the node
+	BillingMode int64 `json:"billingMode,omitempty"`
+	//The number of worker nodes to be created
+	NodeCount int64 `json:"nodeCount,omitempty" norman:"required"`
+	//The list of the exist EIPs
+	EipIds []string `json:"eipIds,omitempty"`
+	//The number of eip to be created
+	EipCount int64 `json:"eipCount,omitempty"`
+	//The type of bandwidth, 5-bgp, 5-sbgp
+	EipType string `json:"eipType,omitempty"`
+	//The charge mode of the bandwidth
+	EipChargeMode string `json:"eipChargeMode,omitempty"`
+	//The size of bandwidth
+	EipBandwidthSize int64 `json:"eipBandwidthSize,omitempty"`
+	//The share type of bandwidth, PER, WHOLE
+	EipShareType string `json:"eipShareType,omitempty"`
+	//The network mode of container, overlay_l2, underlay_ipvlan, vpc-router
+	ContainerNetworkMode string `json:"containerNetworkMode,omitempty"`
+	//The network cidr of container
+	ContainerNetworkCidr string `json:"containerNetworkCidr,omitempty"`
+	//Enabled the cluster external service
+	ExternalServerEnabled bool `json:"externalServerEnabled,omitempty"`
+	//External server IP
+	ClusterEipId string `json:"clusterEipId,omitempty"`
+	//The OS type of nodes, EulerOS 2.2, EulerOS 2.3
+	NodeOperationSystem string `json:"nodeOperationSystem,omitempty"`
+	//The CA for authenticating proxy
+	AuthenticatingProxyCa string `json:"authenticatingProxyCa,omitempty"`
+	// The map of Kubernetes labels (key/value pairs) to be applied to each node
+	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
 }
 
 type AzureKubernetesServiceConfig struct {

@@ -82,6 +82,13 @@ func (c controllerConfigGetter) GetConfig() (types.DriverOptions, error) {
 		}
 		data = config
 		flatten(data, &driverOptions)
+	case "cce":
+		config, err := toMap(c.clusterSpec.HuaweiCloudContainerEngineConfig, "json")
+		if err != nil {
+			return driverOptions, err
+		}
+		data = config
+		flatten(data, &driverOptions)
 	}
 
 	driverOptions.StringOptions["name"] = c.clusterName
@@ -104,8 +111,15 @@ func flatten(data map[string]interface{}, driverOptions *types.DriverOptions) {
 			driverOptions.StringOptions[k] = v.(string)
 		case bool:
 			driverOptions.BoolOptions[k] = v.(bool)
-		case []string:
-			driverOptions.StringSliceOptions[k] = &types.StringSlice{Value: v.([]string)}
+		case []interface{}:
+			var array []string
+			for _, a := range v.([]interface{}) {
+				str, ok := a.(string)
+				if ok == true {
+					array = append(array, str)
+				}
+			}
+			driverOptions.StringSliceOptions[k] = &types.StringSlice{Value: array}
 		case map[string]interface{}:
 			// hack for labels
 			if k == "labels" {
@@ -175,6 +189,8 @@ func (e *engineService) convertCluster(name string, spec v3.ClusterSpec) (cluste
 		driverName = "eks"
 	} else if spec.ImportedConfig != nil {
 		driverName = "import"
+	} else if spec.HuaweiCloudContainerEngineConfig != nil {
+		driverName = "cce"
 	}
 	if driverName == "" {
 		return cluster.Cluster{}, fmt.Errorf("no driver config found")

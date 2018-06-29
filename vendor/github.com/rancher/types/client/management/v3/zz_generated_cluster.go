@@ -27,6 +27,7 @@ const (
 	ClusterFieldDriver                               = "driver"
 	ClusterFieldFailedSpec                           = "failedSpec"
 	ClusterFieldGoogleKubernetesEngineConfig         = "googleKubernetesEngineConfig"
+	ClusterFieldHuaweiCloudContainerEngineConfig     = "huaweiCloudContainerEngineConfig"
 	ClusterFieldImportedConfig                       = "importedConfig"
 	ClusterFieldInternal                             = "internal"
 	ClusterFieldLabels                               = "labels"
@@ -66,6 +67,7 @@ type Cluster struct {
 	Driver                               string                               `json:"driver,omitempty" yaml:"driver,omitempty"`
 	FailedSpec                           *ClusterSpec                         `json:"failedSpec,omitempty" yaml:"failedSpec,omitempty"`
 	GoogleKubernetesEngineConfig         *GoogleKubernetesEngineConfig        `json:"googleKubernetesEngineConfig,omitempty" yaml:"googleKubernetesEngineConfig,omitempty"`
+	HuaweiCloudContainerEngineConfig     *HuaweiCloudContainerEngineCongfig   `json:"huaweiCloudContainerEngineConfig,omitempty" yaml:"huaweiCloudContainerEngineConfig,omitempty"`
 	ImportedConfig                       *ImportedConfig                      `json:"importedConfig,omitempty" yaml:"importedConfig,omitempty"`
 	Internal                             bool                                 `json:"internal,omitempty" yaml:"internal,omitempty"`
 	Labels                               map[string]string                    `json:"labels,omitempty" yaml:"labels,omitempty"`

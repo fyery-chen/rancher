@@ -10,6 +10,7 @@ const (
 	ClusterSpecFieldDesiredAgentImage                   = "desiredAgentImage"
 	ClusterSpecFieldDisplayName                         = "displayName"
 	ClusterSpecFieldGoogleKubernetesEngineConfig        = "googleKubernetesEngineConfig"
+	ClusterSpecFieldHuaweiCloudContainerEngineConfig    = "huaweiCloudContainerEngineConfig"
 	ClusterSpecFieldImportedConfig                      = "importedConfig"
 	ClusterSpecFieldInternal                            = "internal"
 	ClusterSpecFieldRancherKubernetesEngineConfig       = "rancherKubernetesEngineConfig"
@@ -24,6 +25,7 @@ type ClusterSpec struct {
 	DesiredAgentImage                   string                               `json:"desiredAgentImage,omitempty" yaml:"desiredAgentImage,omitempty"`
 	DisplayName                         string                               `json:"displayName,omitempty" yaml:"displayName,omitempty"`
 	GoogleKubernetesEngineConfig        *GoogleKubernetesEngineConfig        `json:"googleKubernetesEngineConfig,omitempty" yaml:"googleKubernetesEngineConfig,omitempty"`
+	HuaweiCloudContainerEngineConfig    *HuaweiCloudContainerEngineCongfig   `json:"huaweiCloudContainerEngineConfig,omitempty" yaml:"huaweiCloudContainerEngineConfig,omitempty"`
 	ImportedConfig                      *ImportedConfig                      `json:"importedConfig,omitempty" yaml:"importedConfig,omitempty"`
 	Internal                            bool                                 `json:"internal,omitempty" yaml:"internal,omitempty"`
 	RancherKubernetesEngineConfig       *RancherKubernetesEngineConfig       `json:"rancherKubernetesEngineConfig,omitempty" yaml:"rancherKubernetesEngineConfig,omitempty"`
