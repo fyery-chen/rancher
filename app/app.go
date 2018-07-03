@@ -3,12 +3,8 @@ package app
 import (
 	"context"
 
-	"github.com/rancher/kontainer-engine/service"
-	"github.com/rancher/norman/leader"
 	"github.com/rancher/rancher/pkg/auth/providers/common"
-	"github.com/rancher/rancher/pkg/auth/tokens"
 	"github.com/rancher/rancher/pkg/clustermanager"
-	managementController "github.com/rancher/rancher/pkg/controllers/management"
 	"github.com/rancher/rancher/pkg/dialer"
 	"github.com/rancher/rancher/pkg/k8scheck"
 	"github.com/rancher/rancher/server"
@@ -67,9 +63,11 @@ func buildScaledContext(ctx context.Context, kubeConfig rest.Config, cfg *Config
 }
 
 func Run(ctx context.Context, kubeConfig rest.Config, cfg *Config) error {
+/*
 	if err := service.Start(); err != nil {
 		return err
 	}
+*/
 
 	scaledContext, clusterManager, err := buildScaledContext(ctx, kubeConfig, cfg)
 	if err != nil {
@@ -83,7 +81,7 @@ func Run(ctx context.Context, kubeConfig rest.Config, cfg *Config) error {
 	if err := scaledContext.Start(ctx); err != nil {
 		return err
 	}
-
+/*
 	go leader.RunOrDie(ctx, "cattle-controllers", scaledContext.K8sClient, func(ctx context.Context) {
 		scaledContext.Leader = true
 
@@ -105,6 +103,7 @@ func Run(ctx context.Context, kubeConfig rest.Config, cfg *Config) error {
 
 		<-ctx.Done()
 	})
+*/
 
 	<-ctx.Done()
 	return ctx.Err()

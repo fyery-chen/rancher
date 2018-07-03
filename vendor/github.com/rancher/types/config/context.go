@@ -33,6 +33,8 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	businessv1 "github.com/rancher/types/apis/cloud.huawei.com/v1"
+	businessSchema "github.com/rancher/types/apis/cloud.huawei.com/v1/schema"
 )
 
 var (
@@ -57,14 +59,12 @@ type ScaledContext struct {
 	Project    projectv3.Interface
 	RBAC       rbacv1.Interface
 	Core       corev1.Interface
+	Business   businessv1.Interface
 }
 
 func (c *ScaledContext) controllers() []controller.Starter {
 	return []controller.Starter{
-		c.Management,
-		c.Project,
-		c.RBAC,
-		c.Core,
+		c.Business,
 	}
 }
 
@@ -113,6 +113,10 @@ func NewScaledContext(config rest.Config) (*ScaledContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	context.Business, err = businessv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 
 	dynamicConfig := config
 	if dynamicConfig.NegotiatedSerializer == nil {
@@ -133,7 +137,8 @@ func NewScaledContext(config rest.Config) (*ScaledContext, error) {
 	context.Schemas = types.NewSchemas().
 		AddSchemas(managementSchema.Schemas).
 		AddSchemas(clusterSchema.Schemas).
-		AddSchemas(projectSchema.Schemas)
+		AddSchemas(projectSchema.Schemas).
+		AddSchemas(businessSchema.Schemas)
 
 	return context, err
 }
@@ -163,14 +168,12 @@ type ManagementContext struct {
 	Project    projectv3.Interface
 	RBAC       rbacv1.Interface
 	Core       corev1.Interface
+	Business   businessv1.Interface
 }
 
 func (c *ManagementContext) controllers() []controller.Starter {
 	return []controller.Starter{
-		c.Management,
-		c.Project,
-		c.RBAC,
-		c.Core,
+		c.Business,
 	}
 }
 
@@ -190,18 +193,12 @@ type UserContext struct {
 	BatchV1      batchv1.Interface
 	BatchV1Beta1 batchv1beta1.Interface
 	Networking   knetworkingv1.Interface
+	Business     businessv1.Interface
 }
 
 func (w *UserContext) controllers() []controller.Starter {
 	return []controller.Starter{
-		w.Apps,
-		w.Project,
-		w.Core,
-		w.RBAC,
-		w.Extensions,
-		w.BatchV1,
-		w.BatchV1Beta1,
-		w.Networking,
+		w.Business,
 	}
 }
 
@@ -220,6 +217,7 @@ func (w *UserContext) UserOnlyContext() *UserOnlyContext {
 		Extensions:   w.Extensions,
 		BatchV1:      w.BatchV1,
 		BatchV1Beta1: w.BatchV1Beta1,
+		Business:     w.Business,
 	}
 }
 
@@ -237,17 +235,12 @@ type UserOnlyContext struct {
 	Extensions   extv1beta1.Interface
 	BatchV1      batchv1.Interface
 	BatchV1Beta1 batchv1beta1.Interface
+	Business     businessv1.Interface
 }
 
 func (w *UserOnlyContext) controllers() []controller.Starter {
 	return []controller.Starter{
-		w.Apps,
-		w.Project,
-		w.Core,
-		w.RBAC,
-		w.Extensions,
-		w.BatchV1,
-		w.BatchV1Beta1,
+		w.Business,
 	}
 }
 
@@ -286,6 +279,10 @@ func NewManagementContext(config rest.Config) (*ManagementContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	context.Business, err = businessv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 
 	dynamicConfig := config
 	if dynamicConfig.NegotiatedSerializer == nil {
@@ -306,11 +303,13 @@ func NewManagementContext(config rest.Config) (*ManagementContext, error) {
 	context.Schemas = types.NewSchemas().
 		AddSchemas(managementSchema.Schemas).
 		AddSchemas(clusterSchema.Schemas).
-		AddSchemas(projectSchema.Schemas)
+		AddSchemas(projectSchema.Schemas).
+		AddSchemas(businessSchema.Schemas)
 
 	context.Scheme = runtime.NewScheme()
 	managementv3.AddToScheme(context.Scheme)
 	projectv3.AddToScheme(context.Scheme)
+	businessv1.AddToScheme(context.Scheme)
 
 	context.eventBroadcaster = record.NewBroadcaster()
 	context.Events = context.eventBroadcaster.NewRecorder(context.Scheme, v1.EventSource{
@@ -376,6 +375,11 @@ func NewUserContext(scaledContext *ScaledContext, config rest.Config, clusterNam
 	}
 
 	context.Project, err = projectv3.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	context.Business, err = businessv1.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

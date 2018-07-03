@@ -1,4 +1,4 @@
-package server
+package business
 
 import (
 	"context"
@@ -10,12 +10,9 @@ import (
 	"github.com/rancher/rancher/pkg/api/controllers/dynamicschema"
 	"github.com/rancher/rancher/pkg/api/controllers/settings"
 	"github.com/rancher/rancher/pkg/api/controllers/whitelistproxy"
-	"github.com/rancher/rancher/pkg/api/server/managementstored"
-	"github.com/rancher/rancher/pkg/api/server/userstored"
+
+	"github.com/rancher/rancher/pkg/api/business/businessstored"
 	"github.com/rancher/rancher/pkg/clustermanager"
-	clusterSchema "github.com/rancher/types/apis/cluster.cattle.io/v3/schema"
-	managementSchema "github.com/rancher/types/apis/management.cattle.io/v3/schema"
-	projectSchema "github.com/rancher/types/apis/project.cattle.io/v3/schema"
 	businessSchema "github.com/rancher/types/apis/cloud.huawei.com/v1/schema"
 	"github.com/rancher/types/config"
 )
@@ -23,18 +20,12 @@ import (
 func New(ctx context.Context, scaledContext *config.ScaledContext, clusterManager *clustermanager.Manager,
 	k8sProxy http.Handler) (http.Handler, error) {
 	subscribe.Register(&builtin.Version, scaledContext.Schemas)
-	subscribe.Register(&managementSchema.Version, scaledContext.Schemas)
-	subscribe.Register(&clusterSchema.Version, scaledContext.Schemas)
-	subscribe.Register(&projectSchema.Version, scaledContext.Schemas)
 	subscribe.Register(&businessSchema.Version, scaledContext.Schemas)
 
-	if err := managementstored.Setup(ctx, scaledContext, clusterManager, k8sProxy); err != nil {
+	if err := businessstored.Setup(ctx, scaledContext, clusterManager, k8sProxy); err != nil {
 		return nil, err
 	}
 
-	if err := userstored.Setup(ctx, scaledContext, clusterManager, k8sProxy); err != nil {
-		return nil, err
-	}
 
 	server := normanapi.NewAPIServer()
 	server.AccessControl = scaledContext.AccessControl

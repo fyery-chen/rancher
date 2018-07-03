@@ -27,7 +27,7 @@ func Start(ctx context.Context, context *config.ScaledContext, httpPort, httpsPo
 		listenConfig:       context.Management.ListenConfigs(""),
 		listenConfigLister: context.Management.ListenConfigs("").Controller().Lister(),
 	}
-	context.Management.ListenConfigs("").AddHandler("listener", c.sync)
+	context.Management.ListenConfigs("").AddHandler("listener", c.sygrenc)
 	go func() {
 		<-ctx.Done()
 		c.server.Shutdown()
