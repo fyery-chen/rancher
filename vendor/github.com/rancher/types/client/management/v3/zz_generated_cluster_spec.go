@@ -12,7 +12,6 @@ const (
 	ClusterSpecFieldGoogleKubernetesEngineConfig        = "googleKubernetesEngineConfig"
 	ClusterSpecFieldImportedConfig                      = "importedConfig"
 	ClusterSpecFieldInternal                            = "internal"
-	ClusterSpecFieldRancherKubernetesEngineConfig       = "rancherKubernetesEngineConfig"
 )
 
 type ClusterSpec struct {
@@ -26,5 +25,4 @@ type ClusterSpec struct {
 	GoogleKubernetesEngineConfig        *GoogleKubernetesEngineConfig        `json:"googleKubernetesEngineConfig,omitempty" yaml:"googleKubernetesEngineConfig,omitempty"`
 	ImportedConfig                      *ImportedConfig                      `json:"importedConfig,omitempty" yaml:"importedConfig,omitempty"`
 	Internal                            bool                                 `json:"internal,omitempty" yaml:"internal,omitempty"`
-	RancherKubernetesEngineConfig       *RancherKubernetesEngineConfig       `json:"rancherKubernetesEngineConfig,omitempty" yaml:"rancherKubernetesEngineConfig,omitempty"`
 }

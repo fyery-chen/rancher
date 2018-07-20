@@ -19,7 +19,6 @@ import (
 	"github.com/rancher/rancher/pkg/agent/cluster"
 	"github.com/rancher/rancher/pkg/agent/node"
 	"github.com/rancher/rancher/pkg/remotedialer"
-	"github.com/rancher/rancher/pkg/rkenodeconfigclient"
 	"github.com/sirupsen/logrus"
 )
 
@@ -146,10 +145,6 @@ func run() error {
 
 	onConnect := func(ctx context.Context) error {
 		connected()
-		connectConfig := fmt.Sprintf("https://%s/v3/connect/config", serverURL.Host)
-		if err := rkenodeconfigclient.ConfigClient(ctx, connectConfig, headers); err != nil {
-			return err
-		}
 
 		if isCluster() {
 			return nil
@@ -164,10 +159,6 @@ func run() error {
 			for {
 				select {
 				case <-time.After(2 * time.Minute):
-					err := rkenodeconfigclient.ConfigClient(ctx, connectConfig, headers)
-					if err != nil {
-						logrus.Errorf("failed to check plan: %v", err)
-					}
 				case <-ctx.Done():
 					return
 				}

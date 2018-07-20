@@ -6,6 +6,27 @@ const (
 	DefaultK8s = "v1.10.3-rancher2-1"
 )
 
+type AlertSystemImages struct {
+	AlertManager       string
+	AlertManagerHelper string
+}
+
+type PipelineSystemImages struct {
+	Jenkins       string
+	JenkinsJnlp   string
+	AlpineGit     string
+	PluginsDocker string
+}
+
+type LoggingSystemImages struct {
+	Fluentd                       string
+	FluentdHelper                 string
+	LogAggregatorFlexVolumeDriver string
+	Elaticsearch                  string
+	Kibana                        string
+	Busybox                       string
+}
+
 var (
 	m = image.Mirror
 

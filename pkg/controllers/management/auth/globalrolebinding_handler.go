@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"github.com/rancher/types/apis/management.cattle.io/v3"
+	"github.com/rancher/types/apis/cloud.huawei.com/v3"
 	rbacv1 "github.com/rancher/types/apis/rbac.authorization.k8s.io/v1"
 	"github.com/rancher/types/config"
 	"github.com/sirupsen/logrus"
@@ -22,32 +22,32 @@ func newGlobalRoleBindingLifecycle(management *config.ManagementContext) *global
 	return &globalRoleBindingLifecycle{
 		crbLister: management.RBAC.ClusterRoleBindings("").Controller().Lister(),
 		crbClient: management.RBAC.ClusterRoleBindings(""),
-		grLister:  management.Management.GlobalRoles("").Controller().Lister(),
+		grLister:  management.Business.BusinessGlobalRoles("").Controller().Lister(),
 	}
 }
 
 type globalRoleBindingLifecycle struct {
 	crbLister rbacv1.ClusterRoleBindingLister
-	grLister  v3.GlobalRoleLister
+	grLister  v3.BusinessGlobalRoleLister
 	crbClient rbacv1.ClusterRoleBindingInterface
 }
 
-func (grb *globalRoleBindingLifecycle) Create(obj *v3.GlobalRoleBinding) (*v3.GlobalRoleBinding, error) {
+func (grb *globalRoleBindingLifecycle) Create(obj *v3.BusinessGlobalRoleBinding) (*v3.BusinessGlobalRoleBinding, error) {
 	err := grb.reconcileGlobalRoleBinding(obj)
 	return obj, err
 }
 
-func (grb *globalRoleBindingLifecycle) Updated(obj *v3.GlobalRoleBinding) (*v3.GlobalRoleBinding, error) {
+func (grb *globalRoleBindingLifecycle) Updated(obj *v3.BusinessGlobalRoleBinding) (*v3.BusinessGlobalRoleBinding, error) {
 	err := grb.reconcileGlobalRoleBinding(obj)
 	return nil, err
 }
 
-func (grb *globalRoleBindingLifecycle) Remove(obj *v3.GlobalRoleBinding) (*v3.GlobalRoleBinding, error) {
+func (grb *globalRoleBindingLifecycle) Remove(obj *v3.BusinessGlobalRoleBinding) (*v3.BusinessGlobalRoleBinding, error) {
 	// Don't need to delete the created ClusterRole because owner reference will take care of that
 	return nil, nil
 }
 
-func (grb *globalRoleBindingLifecycle) reconcileGlobalRoleBinding(globalRoleBinding *v3.GlobalRoleBinding) error {
+func (grb *globalRoleBindingLifecycle) reconcileGlobalRoleBinding(globalRoleBinding *v3.BusinessGlobalRoleBinding) error {
 	crbName, ok := globalRoleBinding.Annotations[crbNameAnnotation]
 	if !ok {
 		crbName = crbNamePrefix + globalRoleBinding.Name

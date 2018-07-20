@@ -33,7 +33,6 @@ const (
 	ClusterFieldLimits                               = "limits"
 	ClusterFieldName                                 = "name"
 	ClusterFieldOwnerReferences                      = "ownerReferences"
-	ClusterFieldRancherKubernetesEngineConfig        = "rancherKubernetesEngineConfig"
 	ClusterFieldRemoved                              = "removed"
 	ClusterFieldRequested                            = "requested"
 	ClusterFieldState                                = "state"
@@ -72,7 +71,6 @@ type Cluster struct {
 	Limits                               map[string]string                    `json:"limits,omitempty" yaml:"limits,omitempty"`
 	Name                                 string                               `json:"name,omitempty" yaml:"name,omitempty"`
 	OwnerReferences                      []OwnerReference                     `json:"ownerReferences,omitempty" yaml:"ownerReferences,omitempty"`
-	RancherKubernetesEngineConfig        *RancherKubernetesEngineConfig       `json:"rancherKubernetesEngineConfig,omitempty" yaml:"rancherKubernetesEngineConfig,omitempty"`
 	Removed                              string                               `json:"removed,omitempty" yaml:"removed,omitempty"`
 	Requested                            map[string]string                    `json:"requested,omitempty" yaml:"requested,omitempty"`
 	State                                string                               `json:"state,omitempty" yaml:"state,omitempty"`

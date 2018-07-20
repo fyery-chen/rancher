@@ -6,6 +6,7 @@ import (
 
 	"github.com/rancher/types/apis/core/v1"
 	"github.com/rancher/types/apis/management.cattle.io/v3"
+	businessclient "github.com/rancher/types/apis/cloud.huawei.com/v3"
 	"github.com/rancher/types/config"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,16 +15,14 @@ import (
 )
 
 type userLifecycle struct {
-	prtb            v3.ProjectRoleTemplateBindingInterface
-	crtb            v3.ClusterRoleTemplateBindingInterface
-	grb             v3.GlobalRoleBindingInterface
+	prtb            businessclient.BusinessRoleTemplateBindingInterface
+	grb             businessclient.BusinessGlobalRoleBindingInterface
 	users           v3.UserInterface
 	tokens          v3.TokenInterface
 	namespaces      v1.NamespaceInterface
 	namespaceLister v1.NamespaceLister
-	prtbLister      v3.ProjectRoleTemplateBindingLister
-	crtbLister      v3.ClusterRoleTemplateBindingLister
-	grbLister       v3.GlobalRoleBindingLister
+	prtbLister      businessclient.BusinessRoleTemplateBindingLister
+	grbLister       businessclient.BusinessGlobalRoleBindingLister
 	prtbIndexer     cache.Indexer
 	crtbIndexer     cache.Indexer
 	grbIndexer      cache.Indexer
@@ -39,33 +38,24 @@ const (
 
 func newUserLifecycle(management *config.ManagementContext) *userLifecycle {
 	lfc := &userLifecycle{
-		prtb:            management.Management.ProjectRoleTemplateBindings(""),
-		crtb:            management.Management.ClusterRoleTemplateBindings(""),
-		grb:             management.Management.GlobalRoleBindings(""),
+		prtb:            management.Business.BusinessRoleTemplateBindings(""),
+		grb:             management.Business.BusinessGlobalRoleBindings(""),
 		users:           management.Management.Users(""),
 		tokens:          management.Management.Tokens(""),
 		namespaces:      management.Core.Namespaces(""),
-		prtbLister:      management.Management.ProjectRoleTemplateBindings("").Controller().Lister(),
-		crtbLister:      management.Management.ClusterRoleTemplateBindings("").Controller().Lister(),
-		grbLister:       management.Management.GlobalRoleBindings("").Controller().Lister(),
+		prtbLister:      management.Business.BusinessRoleTemplateBindings("").Controller().Lister(),
+		grbLister:       management.Business.BusinessGlobalRoleBindings("").Controller().Lister(),
 		namespaceLister: management.Core.Namespaces("").Controller().Lister(),
 	}
 
-	prtbInformer := management.Management.ProjectRoleTemplateBindings("").Controller().Informer()
+	prtbInformer := management.Business.BusinessRoleTemplateBindings("").Controller().Informer()
 	prtbInformer.AddIndexers(map[string]cache.IndexFunc{
 		prtbByUserRefKey: prtbByUserRefFunc,
 	})
 
 	lfc.prtbIndexer = prtbInformer.GetIndexer()
 
-	crtbInformer := management.Management.ClusterRoleTemplateBindings("").Controller().Informer()
-	crtbInformer.AddIndexers(map[string]cache.IndexFunc{
-		crtbByUserRefKey: crtbByUserRefFunc,
-	})
-
-	lfc.crtbIndexer = crtbInformer.GetIndexer()
-
-	grbInformer := management.Management.GlobalRoleBindings("").Controller().Informer()
+	grbInformer := management.Business.BusinessGlobalRoleBindings("").Controller().Informer()
 	grbInformer.AddIndexers(map[string]cache.IndexFunc{
 		grbByUserRefKey: grbByUserRefFunc,
 	})
@@ -83,7 +73,7 @@ func newUserLifecycle(management *config.ManagementContext) *userLifecycle {
 }
 
 func grbByUserRefFunc(obj interface{}) ([]string, error) {
-	globalRoleBinding, ok := obj.(*v3.GlobalRoleBinding)
+	globalRoleBinding, ok := obj.(*businessclient.BusinessGlobalRoleBinding)
 	if !ok {
 		return []string{}, nil
 	}
@@ -92,21 +82,12 @@ func grbByUserRefFunc(obj interface{}) ([]string, error) {
 }
 
 func prtbByUserRefFunc(obj interface{}) ([]string, error) {
-	projectRoleBinding, ok := obj.(*v3.ProjectRoleTemplateBinding)
+	projectRoleBinding, ok := obj.(*businessclient.BusinessRoleTemplateBinding)
 	if !ok || projectRoleBinding.UserName == "" {
 		return []string{}, nil
 	}
 
 	return []string{projectRoleBinding.UserName}, nil
-}
-
-func crtbByUserRefFunc(obj interface{}) ([]string, error) {
-	clusterRoleBinding, ok := obj.(*v3.ClusterRoleTemplateBinding)
-	if !ok || clusterRoleBinding.UserName == "" {
-		return []string{}, nil
-	}
-
-	return []string{clusterRoleBinding.UserName}, nil
 }
 
 func tokenByUserRefFunc(obj interface{}) ([]string, error) {
@@ -139,16 +120,6 @@ func (l *userLifecycle) Updated(user *v3.User) (*v3.User, error) {
 }
 
 func (l *userLifecycle) Remove(user *v3.User) (*v3.User, error) {
-	clusterRoles, err := l.getCRTBByUserName(user.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	err = l.deleteAllCRTB(clusterRoles)
-	if err != nil {
-		return nil, err
-	}
-
 	projectRoles, err := l.getPRTBByUserName(user.Name)
 	if err != nil {
 		return nil, err
@@ -187,34 +158,15 @@ func (l *userLifecycle) Remove(user *v3.User) (*v3.User, error) {
 	return user, nil
 }
 
-func (l *userLifecycle) getCRTBByUserName(username string) ([]*v3.ClusterRoleTemplateBinding, error) {
-	obj, err := l.crtbIndexer.ByIndex(crtbByUserRefKey, username)
-	if err != nil {
-		return nil, fmt.Errorf("error getting cluster roles: %v", err)
-	}
-
-	var crtbs []*v3.ClusterRoleTemplateBinding
-	for _, o := range obj {
-		crtb, ok := o.(*v3.ClusterRoleTemplateBinding)
-		if !ok {
-			return nil, fmt.Errorf("error converting obj to cluster role template binding: %v", o)
-		}
-
-		crtbs = append(crtbs, crtb)
-	}
-
-	return crtbs, nil
-}
-
-func (l *userLifecycle) getPRTBByUserName(username string) ([]*v3.ProjectRoleTemplateBinding, error) {
+func (l *userLifecycle) getPRTBByUserName(username string) ([]*businessclient.BusinessRoleTemplateBinding, error) {
 	objs, err := l.prtbIndexer.ByIndex(prtbByUserRefKey, username)
 	if err != nil {
 		return nil, fmt.Errorf("error getting indexed project roles: %v", err)
 	}
 
-	var prtbs []*v3.ProjectRoleTemplateBinding
+	var prtbs []*businessclient.BusinessRoleTemplateBinding
 	for _, obj := range objs {
-		prtb, ok := obj.(*v3.ProjectRoleTemplateBinding)
+		prtb, ok := obj.(*businessclient.BusinessRoleTemplateBinding)
 		if !ok {
 			return nil, fmt.Errorf("could not convert obj to v3.ProjectRoleTemplateBinding")
 		}
@@ -225,15 +177,15 @@ func (l *userLifecycle) getPRTBByUserName(username string) ([]*v3.ProjectRoleTem
 	return prtbs, nil
 }
 
-func (l *userLifecycle) getGRBByUserName(username string) ([]*v3.GlobalRoleBinding, error) {
+func (l *userLifecycle) getGRBByUserName(username string) ([]*businessclient.BusinessGlobalRoleBinding, error) {
 	objs, err := l.grbIndexer.ByIndex(grbByUserRefKey, username)
 	if err != nil {
 		return nil, fmt.Errorf("error getting indexed global roles: %v", err)
 	}
 
-	var grbs []*v3.GlobalRoleBinding
+	var grbs []*businessclient.BusinessGlobalRoleBinding
 	for _, obj := range objs {
-		grb, ok := obj.(*v3.GlobalRoleBinding)
+		grb, ok := obj.(*businessclient.BusinessGlobalRoleBinding)
 		if !ok {
 			return nil, fmt.Errorf("could not convert obj to v3.GlobalRoleBinding")
 		}
@@ -263,23 +215,7 @@ func (l *userLifecycle) getTokensByUserName(username string) ([]*v3.Token, error
 	return tokens, nil
 }
 
-func (l *userLifecycle) deleteAllCRTB(crtbs []*v3.ClusterRoleTemplateBinding) error {
-	for _, crtb := range crtbs {
-		var err error
-		if crtb.Namespace == "" {
-			err = l.crtb.Delete(crtb.Name, &metav1.DeleteOptions{})
-		} else {
-			err = l.crtb.DeleteNamespaced(crtb.Namespace, crtb.Name, &metav1.DeleteOptions{})
-		}
-		if err != nil {
-			return fmt.Errorf("error deleting cluster role: %v", err)
-		}
-	}
-
-	return nil
-}
-
-func (l *userLifecycle) deleteAllPRTB(prtbs []*v3.ProjectRoleTemplateBinding) error {
+func (l *userLifecycle) deleteAllPRTB(prtbs []*businessclient.BusinessRoleTemplateBinding) error {
 	for _, prtb := range prtbs {
 		var err error
 		if prtb.Namespace == "" {
@@ -295,7 +231,7 @@ func (l *userLifecycle) deleteAllPRTB(prtbs []*v3.ProjectRoleTemplateBinding) er
 	return nil
 }
 
-func (l *userLifecycle) deleteAllGRB(grbs []*v3.GlobalRoleBinding) error {
+func (l *userLifecycle) deleteAllGRB(grbs []*businessclient.BusinessGlobalRoleBinding) error {
 	for _, grb := range grbs {
 		var err error
 		if grb.Namespace == "" {

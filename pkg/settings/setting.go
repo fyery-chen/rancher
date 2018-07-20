@@ -1,10 +1,5 @@
 package settings
 
-import (
-	"encoding/json"
-
-	"github.com/rancher/types/apis/management.cattle.io/v3"
-)
 
 var (
 	settings = map[string]Setting{}
@@ -23,8 +18,6 @@ var (
 	HelmVersion                     = newSetting("helm-version", "dev")
 	IngressIPDomain                 = newSetting("ingress-ip-domain", "xip.io")
 	InstallUUID                     = newSetting("install-uuid", "")
-	KubernetesVersion               = newSetting("k8s-version", v3.DefaultK8s)
-	KubernetesVersionToSystemImages = newSetting("k8s-version-to-images", getSystemImages())
 	MachineVersion                  = newSetting("machine-version", "dev")
 	ServerImage                     = newSetting("server-image", "rancher/rancher")
 	ServerURL                       = newSetting("server-url", "")
@@ -98,12 +91,3 @@ func newSetting(name, def string) Setting {
 	return s
 }
 
-func getSystemImages() string {
-	versionToSystemImages := v3.K8sVersionToRKESystemImages
-
-	data, err := json.Marshal(versionToSystemImages)
-	if err != nil {
-		return ""
-	}
-	return string(data)
-}

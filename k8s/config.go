@@ -15,10 +15,6 @@ func GetConfig(ctx context.Context, k8sMode string, kubeConfig string) (bool, co
 	)
 
 	switch k8sMode {
-	case "auto":
-		return getAuto(ctx, kubeConfig)
-	case "embedded":
-		return getEmbedded(ctx)
 	case "external":
 		cfg, err = getExternal(kubeConfig)
 	default:
@@ -26,19 +22,6 @@ func GetConfig(ctx context.Context, k8sMode string, kubeConfig string) (bool, co
 	}
 
 	return false, ctx, cfg, err
-}
-
-func getAuto(ctx context.Context, kubeConfig string) (bool, context.Context, *rest.Config, error) {
-	if kubeConfig != "" {
-		cfg, err := getExternal(kubeConfig)
-		return false, ctx, cfg, err
-	}
-
-	if config, err := rest.InClusterConfig(); err == nil {
-		return false, ctx, config, nil
-	}
-
-	return getEmbedded(ctx)
 }
 
 func getExternal(kubeConfig string) (*rest.Config, error) {

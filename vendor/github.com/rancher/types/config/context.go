@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/controller"
 	"github.com/rancher/norman/event"
@@ -10,17 +9,9 @@ import (
 	"github.com/rancher/norman/signal"
 	"github.com/rancher/norman/store/proxy"
 	"github.com/rancher/norman/types"
-	appsv1beta2 "github.com/rancher/types/apis/apps/v1beta2"
-	batchv1 "github.com/rancher/types/apis/batch/v1"
-	batchv1beta1 "github.com/rancher/types/apis/batch/v1beta1"
-	clusterSchema "github.com/rancher/types/apis/cluster.cattle.io/v3/schema"
 	corev1 "github.com/rancher/types/apis/core/v1"
-	extv1beta1 "github.com/rancher/types/apis/extensions/v1beta1"
-	managementv3 "github.com/rancher/types/apis/management.cattle.io/v3"
-	managementSchema "github.com/rancher/types/apis/management.cattle.io/v3/schema"
-	knetworkingv1 "github.com/rancher/types/apis/networking.k8s.io/v1"
-	projectv3 "github.com/rancher/types/apis/project.cattle.io/v3"
-	projectSchema "github.com/rancher/types/apis/project.cattle.io/v3/schema"
+	businessv3 "github.com/rancher/types/apis/cloud.huawei.com/v3"
+	businessSchema "github.com/rancher/types/apis/cloud.huawei.com/v3/schema"
 	rbacv1 "github.com/rancher/types/apis/rbac.authorization.k8s.io/v1"
 	"github.com/rancher/types/config/dialer"
 	"github.com/rancher/types/user"
@@ -33,6 +24,13 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	managementv3 "github.com/rancher/types/apis/management.cattle.io/v3"
+	managementSchema "github.com/rancher/types/apis/management.cattle.io/v3/schema"
+	appsv1beta2 "github.com/rancher/types/apis/apps/v1beta2"
+	extv1beta1 "github.com/rancher/types/apis/extensions/v1beta1"
+	batchv1 "github.com/rancher/types/apis/batch/v1"
+	batchv1beta1 "github.com/rancher/types/apis/batch/v1beta1"
+	knetworkingv1 "github.com/rancher/types/apis/networking.k8s.io/v1"
 )
 
 var (
@@ -54,17 +52,17 @@ type ScaledContext struct {
 	Leader            bool
 
 	Management managementv3.Interface
-	Project    projectv3.Interface
 	RBAC       rbacv1.Interface
 	Core       corev1.Interface
+	Business   businessv3.Interface
 }
 
 func (c *ScaledContext) controllers() []controller.Starter {
 	return []controller.Starter{
 		c.Management,
-		c.Project,
 		c.RBAC,
 		c.Core,
+		c.Business,
 	}
 }
 
@@ -90,11 +88,6 @@ func NewScaledContext(config rest.Config) (*ScaledContext, error) {
 		return nil, err
 	}
 
-	context.Project, err = projectv3.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
 	context.K8sClient, err = kubernetes.NewForConfig(&config)
 	if err != nil {
 		return nil, err
@@ -109,7 +102,8 @@ func NewScaledContext(config rest.Config) (*ScaledContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	context.Project, err = projectv3.NewForConfig(config)
+
+	context.Business, err = businessv3.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -132,8 +126,7 @@ func NewScaledContext(config rest.Config) (*ScaledContext, error) {
 
 	context.Schemas = types.NewSchemas().
 		AddSchemas(managementSchema.Schemas).
-		AddSchemas(clusterSchema.Schemas).
-		AddSchemas(projectSchema.Schemas)
+		AddSchemas(businessSchema.Schemas)
 
 	return context, err
 }
@@ -160,15 +153,15 @@ type ManagementContext struct {
 	UserManager       user.Manager
 
 	Management managementv3.Interface
-	Project    projectv3.Interface
 	RBAC       rbacv1.Interface
 	Core       corev1.Interface
+	Business   businessv3.Interface
 }
 
 func (c *ManagementContext) controllers() []controller.Starter {
 	return []controller.Starter{
 		c.Management,
-		c.Project,
+		c.Business,
 		c.RBAC,
 		c.Core,
 	}
@@ -183,7 +176,6 @@ type UserContext struct {
 	K8sClient         kubernetes.Interface
 
 	Apps         appsv1beta2.Interface
-	Project      projectv3.Interface
 	Core         corev1.Interface
 	RBAC         rbacv1.Interface
 	Extensions   extv1beta1.Interface
@@ -195,7 +187,6 @@ type UserContext struct {
 func (w *UserContext) controllers() []controller.Starter {
 	return []controller.Starter{
 		w.Apps,
-		w.Project,
 		w.Core,
 		w.RBAC,
 		w.Extensions,
@@ -214,7 +205,6 @@ func (w *UserContext) UserOnlyContext() *UserOnlyContext {
 		K8sClient:         w.K8sClient,
 
 		Apps:         w.Apps,
-		Project:      w.Project,
 		Core:         w.Core,
 		RBAC:         w.RBAC,
 		Extensions:   w.Extensions,
@@ -231,7 +221,6 @@ type UserOnlyContext struct {
 	K8sClient         kubernetes.Interface
 
 	Apps         appsv1beta2.Interface
-	Project      projectv3.Interface
 	Core         corev1.Interface
 	RBAC         rbacv1.Interface
 	Extensions   extv1beta1.Interface
@@ -242,7 +231,6 @@ type UserOnlyContext struct {
 func (w *UserOnlyContext) controllers() []controller.Starter {
 	return []controller.Starter{
 		w.Apps,
-		w.Project,
 		w.Core,
 		w.RBAC,
 		w.Extensions,
@@ -263,11 +251,6 @@ func NewManagementContext(config rest.Config) (*ManagementContext, error) {
 		return nil, err
 	}
 
-	context.Project, err = projectv3.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
 	context.K8sClient, err = kubernetes.NewForConfig(&config)
 	if err != nil {
 		return nil, err
@@ -282,7 +265,7 @@ func NewManagementContext(config rest.Config) (*ManagementContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	context.Project, err = projectv3.NewForConfig(config)
+	context.Business, err = businessv3.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -305,12 +288,11 @@ func NewManagementContext(config rest.Config) (*ManagementContext, error) {
 
 	context.Schemas = types.NewSchemas().
 		AddSchemas(managementSchema.Schemas).
-		AddSchemas(clusterSchema.Schemas).
-		AddSchemas(projectSchema.Schemas)
+		AddSchemas(businessSchema.Schemas)
 
 	context.Scheme = runtime.NewScheme()
 	managementv3.AddToScheme(context.Scheme)
-	projectv3.AddToScheme(context.Scheme)
+	businessv3.AddToScheme(context.Scheme)
 
 	context.eventBroadcaster = record.NewBroadcaster()
 	context.Events = context.eventBroadcaster.NewRecorder(context.Scheme, v1.EventSource{
@@ -371,11 +353,6 @@ func NewUserContext(scaledContext *ScaledContext, config rest.Config, clusterNam
 	}
 
 	context.Core, err = corev1.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	context.Project, err = projectv3.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

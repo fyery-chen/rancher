@@ -15,7 +15,6 @@ import (
 
 	"github.com/rancher/norman/httperror"
 	"github.com/rancher/norman/types"
-	clusterController "github.com/rancher/rancher/pkg/controllers/user"
 	"github.com/rancher/rancher/pkg/rbac"
 	"github.com/rancher/types/apis/management.cattle.io/v3"
 	"github.com/rancher/types/config"
@@ -114,14 +113,7 @@ func (m *Manager) start(ctx context.Context, cluster *v3.Cluster) (*record, erro
 		return nil, httperror.NewAPIError(httperror.ClusterUnavailable, "cluster not found")
 	}
 
-	obj, loaded := m.controllers.LoadOrStore(cluster.UID, controller)
-	if !loaded {
-		go func() {
-			if err := m.doStart(obj.(*record)); err != nil {
-				m.Stop(cluster)
-			}
-		}()
-	}
+	obj, _ = m.controllers.LoadOrStore(cluster.UID, controller)
 
 	return obj.(*record), nil
 }
@@ -135,14 +127,6 @@ func (m *Manager) changed(r *record, cluster *v3.Cluster) bool {
 	}
 
 	return false
-}
-
-func (m *Manager) doStart(rec *record) error {
-	logrus.Info("Starting cluster agent for", rec.cluster.ClusterName)
-	if err := clusterController.Register(rec.ctx, rec.cluster, m, m); err != nil {
-		return err
-	}
-	return rec.cluster.Start(rec.ctx)
 }
 
 func (m *Manager) toRESTConfig(cluster *v3.Cluster) (*rest.Config, error) {

@@ -7,23 +7,20 @@ import (
 )
 
 func RegisterEarly(ctx context.Context, management *config.ManagementContext) {
-	prtb, crtb := newRTBLifecycles(management)
+	prtb := newRTBLifecycles(management)
 	gr := newGlobalRoleLifecycle(management)
 	grb := newGlobalRoleBindingLifecycle(management)
-	p, c := newPandCLifecycles(management)
+	p := newPandCLifecycles(management)
 	u := newUserLifecycle(management)
 
-	management.Management.ProjectRoleTemplateBindings("").AddLifecycle("mgmt-auth-prtb-controller", prtb)
-	management.Management.ClusterRoleTemplateBindings("").AddLifecycle("mgmt-auth-crtb-controller", crtb)
-	management.Management.GlobalRoles("").AddLifecycle("mgmt-auth-gr-controller", gr)
-	management.Management.GlobalRoleBindings("").AddLifecycle("mgmt-auth-grb-controller", grb)
-	management.Management.Projects("").AddHandler("mgmt-project-rbac-create", p.sync)
-	management.Management.Clusters("").AddHandler("mgmt-cluster-rbac-delete", c.sync)
+	management.Business.BusinessRoleTemplateBindings("").AddLifecycle("mgmt-auth-prtb-controller", prtb)
+	management.Business.BusinessGlobalRoles("").AddLifecycle("mgmt-auth-gr-controller", gr)
+	management.Business.BusinessGlobalRoleBindings("").AddLifecycle("mgmt-auth-grb-controller", grb)
+	management.Business.Businesses("").AddHandler("mgmt-cluster-rbac-delete", p.sync)
 	management.Management.Users("").AddLifecycle("mgmt-auth-users-controller", u)
 }
 
 func RegisterLate(ctx context.Context, management *config.ManagementContext) {
-	p, c := newPandCLifecycles(management)
-	management.Management.Projects("").AddLifecycle("mgmt-project-rbac-remove", p)
-	management.Management.Clusters("").AddLifecycle("mgmt-cluster-rbac-remove", c)
+	p := newPandCLifecycles(management)
+	management.Business.Businesses("").AddLifecycle("mgmt-cluster-rbac-remove", p)
 }

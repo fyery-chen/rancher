@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/condition"
 	corev1 "github.com/rancher/types/apis/core/v1"
-	"github.com/rancher/types/apis/management.cattle.io/v3"
+	"github.com/rancher/types/apis/cloud.huawei.com/v3"
 	"github.com/rancher/types/config"
 	"github.com/sirupsen/logrus"
 	v12 "k8s.io/api/core/v1"
@@ -25,28 +25,24 @@ const (
 var defaultProjectLabels = labels.Set(map[string]string{"authz.management.cattle.io/default-project": "true"})
 var crtbCeatorOwnerAnnotations = map[string]string{creatorOwnerBindingAnnotation: "true"}
 
-func newPandCLifecycles(management *config.ManagementContext) (*projectLifecycle, *clusterLifecycle) {
+func newPandCLifecycles(management *config.ManagementContext) (*businessLifecycle) {
 	m := &mgr{
 		mgmt:          management,
 		nsLister:      management.Core.Namespaces("").Controller().Lister(),
-		prtbLister:    management.Management.ProjectRoleTemplateBindings("").Controller().Lister(),
-		crtbLister:    management.Management.ClusterRoleTemplateBindings("").Controller().Lister(),
-		projectLister: management.Management.Projects("").Controller().Lister(),
+		prtbLister:    management.Business.BusinessRoleTemplateBindings("").Controller().Lister(),
+		businessLister: management.Business.Businesses("").Controller().Lister(),
 	}
-	p := &projectLifecycle{
+	p := &businessLifecycle{
 		mgr: m,
 	}
-	c := &clusterLifecycle{
-		mgr: m,
-	}
-	return p, c
+	return p
 }
 
-type projectLifecycle struct {
+type businessLifecycle struct {
 	mgr *mgr
 }
 
-func (l *projectLifecycle) sync(key string, orig *v3.Project) error {
+func (l *businessLifecycle) sync(key string, orig *v3.Business) error {
 	if orig == nil {
 		return nil
 	}
@@ -65,7 +61,7 @@ func (l *projectLifecycle) sync(key string, orig *v3.Project) error {
 
 	// update if it has changed
 	if obj != nil && !reflect.DeepEqual(orig, obj) {
-		_, err = l.mgr.mgmt.Management.Projects("").ObjectClient().Update(orig.Name, obj)
+		_, err = l.mgr.mgmt.Business.Businesses("").ObjectClient().Update(orig.Name, obj)
 		if err != nil {
 			return err
 		}
@@ -73,17 +69,17 @@ func (l *projectLifecycle) sync(key string, orig *v3.Project) error {
 	return err
 }
 
-func (l *projectLifecycle) Create(obj *v3.Project) (*v3.Project, error) {
+func (l *businessLifecycle) Create(obj *v3.Business) (*v3.Business, error) {
 	// no-op because the sync function will take care of it
 	return obj, nil
 }
 
-func (l *projectLifecycle) Updated(obj *v3.Project) (*v3.Project, error) {
+func (l *businessLifecycle) Updated(obj *v3.Business) (*v3.Business, error) {
 	// no-op because the sync function will take care of it
 	return obj, nil
 }
 
-func (l *projectLifecycle) Remove(obj *v3.Project) (*v3.Project, error) {
+func (l *businessLifecycle) Remove(obj *v3.Business) (*v3.Business, error) {
 	err := l.mgr.deleteNamespace(obj)
 	return obj, err
 }
@@ -92,99 +88,11 @@ type clusterLifecycle struct {
 	mgr *mgr
 }
 
-func (l *clusterLifecycle) sync(key string, orig *v3.Cluster) error {
-	if orig == nil {
-		return nil
-	}
-
-	obj := orig.DeepCopyObject()
-	obj, err := l.mgr.reconcileResourceToNamespace(obj)
-	if err != nil {
-		return err
-	}
-
-	obj, err = l.mgr.createDefaultProject(obj)
-	if err != nil {
-		return err
-	}
-
-	obj, err = l.mgr.reconcileCreatorRTB(obj)
-	if err != nil {
-		return err
-	}
-
-	// update if it has changed
-	if obj != nil && !reflect.DeepEqual(orig, obj) {
-		_, err = l.mgr.mgmt.Management.Clusters("").ObjectClient().Update(orig.Name, obj)
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
-
-func (l *clusterLifecycle) Create(obj *v3.Cluster) (*v3.Cluster, error) {
-	// no-op because the sync function will take care of it
-	return obj, nil
-}
-
-func (l *clusterLifecycle) Updated(obj *v3.Cluster) (*v3.Cluster, error) {
-	// no-op because the sync function will take care of it
-	return obj, nil
-}
-
-func (l *clusterLifecycle) Remove(obj *v3.Cluster) (*v3.Cluster, error) {
-	err := l.mgr.deleteNamespace(obj)
-	return obj, err
-}
-
 type mgr struct {
 	mgmt          *config.ManagementContext
 	nsLister      corev1.NamespaceLister
-	projectLister v3.ProjectLister
-
-	prtbLister v3.ProjectRoleTemplateBindingLister
-	crtbLister v3.ClusterRoleTemplateBindingLister
-}
-
-func (m *mgr) createDefaultProject(obj runtime.Object) (runtime.Object, error) {
-	return v3.ClusterConditionconditionDefautlProjectCreated.DoUntilTrue(obj, func() (runtime.Object, error) {
-		metaAccessor, err := meta.Accessor(obj)
-		if err != nil {
-			return obj, err
-		}
-
-		projects, err := m.projectLister.List(metaAccessor.GetName(), defaultProjectLabels.AsSelector())
-		if err != nil {
-			return obj, err
-		}
-		if len(projects) > 0 {
-			return obj, nil
-		}
-
-		creatorID, ok := metaAccessor.GetAnnotations()[creatorIDAnn]
-		if !ok {
-			logrus.Warnf("Cluster %v has no creatorId annotation. Cannot create default project", metaAccessor.GetName())
-			return obj, nil
-		}
-
-		_, err = m.mgmt.Management.Projects(metaAccessor.GetName()).Create(&v3.Project{
-			ObjectMeta: v1.ObjectMeta{
-				GenerateName: "project-",
-				Annotations: map[string]string{
-					creatorIDAnn: creatorID,
-				},
-				Labels: defaultProjectLabels,
-			},
-			Spec: v3.ProjectSpec{
-				DisplayName: "Default",
-				Description: "Default project created for the cluster",
-				ClusterName: metaAccessor.GetName(),
-			},
-		})
-
-		return obj, err
-	})
+	businessLister v3.BusinessLister
+	prtbLister v3.BusinessRoleTemplateBindingLister
 }
 
 func (m *mgr) reconcileCreatorRTB(obj runtime.Object) (runtime.Object, error) {
@@ -212,27 +120,14 @@ func (m *mgr) reconcileCreatorRTB(obj runtime.Object) (runtime.Object, error) {
 		}
 
 		switch typeAccessor.GetKind() {
-		case v3.ProjectGroupVersionKind.Kind:
+		case v3.BusinessGroupVersionKind.Kind:
 			if rtb, _ := m.prtbLister.Get(metaAccessor.GetName(), rtbName); rtb != nil {
 				return obj, nil
 			}
-			if _, err := m.mgmt.Management.ProjectRoleTemplateBindings(metaAccessor.GetName()).Create(&v3.ProjectRoleTemplateBinding{
+			if _, err := m.mgmt.Business.BusinessRoleTemplateBindings(metaAccessor.GetName()).Create(&v3.BusinessRoleTemplateBinding{
 				ObjectMeta:       om,
-				ProjectName:      metaAccessor.GetNamespace() + ":" + metaAccessor.GetName(),
+				BusinessName:      metaAccessor.GetNamespace() + ":" + metaAccessor.GetName(),
 				RoleTemplateName: "project-owner",
-				UserName:         creatorID,
-			}); err != nil {
-				return obj, err
-			}
-		case v3.ClusterGroupVersionKind.Kind:
-			if rtb, _ := m.crtbLister.Get(metaAccessor.GetName(), rtbName); rtb != nil {
-				return obj, nil
-			}
-			om.Annotations = crtbCeatorOwnerAnnotations
-			if _, err := m.mgmt.Management.ClusterRoleTemplateBindings(metaAccessor.GetName()).Create(&v3.ClusterRoleTemplateBinding{
-				ObjectMeta:       om,
-				ClusterName:      metaAccessor.GetName(),
-				RoleTemplateName: "cluster-owner",
 				UserName:         creatorID,
 			}); err != nil {
 				return obj, err

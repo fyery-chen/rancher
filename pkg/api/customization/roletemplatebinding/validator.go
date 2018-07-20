@@ -4,22 +4,18 @@ import (
 	"fmt"
 	"github.com/rancher/norman/httperror"
 	"github.com/rancher/norman/types"
-	"github.com/rancher/types/apis/management.cattle.io/v3"
-	"github.com/rancher/types/client/management/v3"
 	"github.com/rancher/types/config"
+	"github.com/rancher/types/apis/cloud.huawei.com/v3"
+	"github.com/rancher/types/client/cloud/v3"
 )
 
-func NewPRTBValidator(management *config.ScaledContext) types.Validator {
-	return newValidator(management, client.ProjectRoleTemplateBindingFieldRoleTemplateId)
-}
-
 func NewCRTBValidator(management *config.ScaledContext) types.Validator {
-	return newValidator(management, client.ClusterRoleTemplateBindingFieldRoleTemplateId)
+	return newValidator(management, client.BusinessRoleTemplateBindingFieldRoleTemplateId)
 }
 
 func newValidator(management *config.ScaledContext, field string) types.Validator {
 	validator := &Validator{
-		roleTemplateLister: management.Management.RoleTemplates("").Controller().Lister(),
+		roleTemplateLister: management.Business.BusinessRoleTemplates("").Controller().Lister(),
 		field:              field,
 	}
 
@@ -27,7 +23,7 @@ func newValidator(management *config.ScaledContext, field string) types.Validato
 }
 
 type Validator struct {
-	roleTemplateLister v3.RoleTemplateLister
+	roleTemplateLister v3.BusinessRoleTemplateLister
 	field              string
 }
 

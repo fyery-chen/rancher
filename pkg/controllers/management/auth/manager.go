@@ -7,7 +7,7 @@ import (
 	"github.com/rancher/norman/objectclient"
 	"github.com/rancher/norman/types/slice"
 	v13 "github.com/rancher/types/apis/core/v1"
-	"github.com/rancher/types/apis/management.cattle.io/v3"
+	"github.com/rancher/types/apis/cloud.huawei.com/v3"
 	typesrbacv1 "github.com/rancher/types/apis/rbac.authorization.k8s.io/v1"
 	"github.com/rancher/types/config"
 	"github.com/rancher/types/user"
@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func newRTBLifecycles(management *config.ManagementContext) (*prtbLifecycle, *crtbLifecycle) {
+func newRTBLifecycles(management *config.ManagementContext) (*prtbLifecycle) {
 	crbInformer := management.RBAC.ClusterRoleBindings("").Controller().Informer()
 	crbIndexers := map[string]cache.IndexFunc{
 		rbByRoleAndSubjectIndex: rbByRoleAndSubject,
@@ -36,12 +36,11 @@ func newRTBLifecycles(management *config.ManagementContext) (*prtbLifecycle, *cr
 
 	mgr := &manager{
 		mgmt:          management,
-		projectLister: management.Management.Projects("").Controller().Lister(),
 		crbLister:     management.RBAC.ClusterRoleBindings("").Controller().Lister(),
 		crLister:      management.RBAC.ClusterRoles("").Controller().Lister(),
 		rLister:       management.RBAC.Roles("").Controller().Lister(),
 		rbLister:      management.RBAC.RoleBindings("").Controller().Lister(),
-		rtLister:      management.Management.RoleTemplates("").Controller().Lister(),
+		rtLister:      management.Business.BusinessRoleTemplates("").Controller().Lister(),
 		nsLister:      management.Core.Namespaces("").Controller().Lister(),
 		rbIndexer:     rbInformer.GetIndexer(),
 		crbIndexer:    crbInformer.GetIndexer(),
@@ -49,23 +48,17 @@ func newRTBLifecycles(management *config.ManagementContext) (*prtbLifecycle, *cr
 	}
 	prtb := &prtbLifecycle{
 		mgr:           mgr,
-		projectLister: management.Management.Projects("").Controller().Lister(),
-		clusterLister: management.Management.Clusters("").Controller().Lister(),
+		businessLister: management.Business.Businesses("").Controller().Lister(),
 	}
-	crtb := &crtbLifecycle{
-		mgr:           mgr,
-		clusterLister: management.Management.Clusters("").Controller().Lister(),
-	}
-	return prtb, crtb
+	return prtb
 }
 
 type manager struct {
-	projectLister v3.ProjectLister
 	crLister      typesrbacv1.ClusterRoleLister
 	rLister       typesrbacv1.RoleLister
 	rbLister      typesrbacv1.RoleBindingLister
 	crbLister     typesrbacv1.ClusterRoleBindingLister
-	rtLister      v3.RoleTemplateLister
+	rtLister      v3.BusinessRoleTemplateLister
 	nsLister      v13.NamespaceLister
 	rbIndexer     cache.Indexer
 	crbIndexer    cache.Indexer
@@ -73,80 +66,10 @@ type manager struct {
 	userMGR       user.Manager
 }
 
-// When a CRTB is created that gives a subject some permissions in a project or cluster, we need to create a "membership" binding
-// that gives the subject access to the the cluster custom resource itself
-// This is painfully similar to ensureProjectMemberBinding, but making one function that handles both is overly complex
-func (m *manager) ensureClusterMembershipBinding(roleName, rtbUID string, cluster *v3.Cluster, makeOwner bool, subject v1.Subject) error {
-	if err := m.createClusterMembershipRole(roleName, cluster, makeOwner); err != nil {
-		return err
-	}
-
-	key := rbRoleSubjectKey(roleName, subject)
-	set := labels.Set(map[string]string{rtbUID: membershipBindingOwner})
-	crbs, err := m.crbLister.List("", set.AsSelector())
-	if err != nil {
-		return err
-	}
-	var crb *v1.ClusterRoleBinding
-	for _, iCRB := range crbs {
-		if len(iCRB.Subjects) != 1 {
-			iKey := rbRoleSubjectKey(iCRB.RoleRef.Name, iCRB.Subjects[0])
-			if iKey == key {
-				crb = iCRB
-				continue
-			}
-		}
-		if err := m.reconcileClusterMembershipBindingForDelete(roleName, rtbUID); err != nil {
-			return err
-		}
-	}
-
-	if crb != nil {
-		return nil
-	}
-
-	objs, err := m.crbIndexer.ByIndex(rbByRoleAndSubjectIndex, key)
-	if err != nil {
-		return err
-	}
-
-	if len(objs) == 0 {
-		_, err := m.mgmt.RBAC.ClusterRoleBindings("").Create(&v1.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "clusterrolebinding-",
-				Labels: map[string]string{
-					rtbUID: membershipBindingOwner,
-				},
-			},
-			Subjects: []v1.Subject{subject},
-			RoleRef: v1.RoleRef{
-				Kind: "ClusterRole",
-				Name: roleName,
-			},
-		})
-		return err
-	}
-
-	crb, _ = objs[0].(*v1.ClusterRoleBinding)
-	for owner := range crb.Labels {
-		if rtbUID == owner {
-			return nil
-		}
-	}
-
-	crb = crb.DeepCopy()
-	if crb.Labels == nil {
-		crb.Labels = map[string]string{}
-	}
-	crb.Labels[rtbUID] = membershipBindingOwner
-	_, err = m.mgmt.RBAC.ClusterRoleBindings("").Update(crb)
-	return err
-}
-
 // When a PRTB is created that gives a subject some permissions in a project or cluster, we need to create a "membership" binding
 // that gives the subject access to the the project/cluster custom resource itself
-func (m *manager) ensureProjectMembershipBinding(roleName, rtbUID, namespace string, project *v3.Project, makeOwner bool, subject v1.Subject) error {
-	if err := m.createProjectMembershipRole(roleName, namespace, project, makeOwner); err != nil {
+func (m *manager) ensureBusinessMembershipBinding(roleName, rtbUID, namespace string, business *v3.Business, makeOwner bool, subject v1.Subject) error {
+	if err := m.createBusinessMembershipRole(roleName, business, makeOwner); err != nil {
 		return err
 	}
 
@@ -165,7 +88,7 @@ func (m *manager) ensureProjectMembershipBinding(roleName, rtbUID, namespace str
 				continue
 			}
 		}
-		if err := m.reconcileProjectMembershipBindingForDelete(namespace, roleName, rtbUID); err != nil {
+		if err := m.reconcileBusinessMembershipBindingForDelete(namespace, roleName, rtbUID); err != nil {
 			return err
 		}
 	}
@@ -212,20 +135,9 @@ func (m *manager) ensureProjectMembershipBinding(roleName, rtbUID, namespace str
 	return err
 }
 
-// Creates a role that lets the bound subject see (if they are an ordinary member) the project or cluster in the mgmt api
-// (or CRUD the project/cluster if they are an owner)
-func (m *manager) createClusterMembershipRole(roleName string, cluster *v3.Cluster, makeOwner bool) error {
-	if cr, _ := m.crLister.Get("", roleName); cr == nil {
-		return m.createMembershipRole(clusterResource, roleName, makeOwner, cluster, m.mgmt.RBAC.ClusterRoles("").ObjectClient())
-	}
-	return nil
-}
-
-// Creates a role that lets the bound subject see (if they are an ordinary member) the project in the mgmt api
-// (or CRUD the project if they are an owner)
-func (m *manager) createProjectMembershipRole(roleName, namespace string, project *v3.Project, makeOwner bool) error {
-	if cr, _ := m.rLister.Get(namespace, roleName); cr == nil {
-		return m.createMembershipRole(projectResource, roleName, makeOwner, project, m.mgmt.RBAC.Roles(namespace).ObjectClient())
+func (m *manager) createBusinessMembershipRole(roleName string, business *v3.Business, makeOwner bool) error {
+	if cr, _ := m.rLister.Get("", roleName); cr == nil {
+		return m.createMembershipRole(businessResource, roleName, makeOwner, business, m.mgmt.RBAC.Roles("").ObjectClient())
 	}
 	return nil
 }
@@ -241,7 +153,7 @@ func (m *manager) createMembershipRole(resourceType, roleName string, makeOwner 
 	}
 	rules := []v1.PolicyRule{
 		{
-			APIGroups:     []string{"management.cattle.io"},
+			APIGroups:     []string{"cloud.huawei.com"},
 			Resources:     []string{resourceType},
 			ResourceNames: []string{metaObj.GetName()},
 			Verbs:         []string{"get"},
@@ -270,33 +182,9 @@ func (m *manager) createMembershipRole(resourceType, roleName string, makeOwner 
 	return err
 }
 
-// The CRTB has been deleted or modified, either delete or update the membership binding so that the subject
-// is removed from the cluster if they should be
-func (m *manager) reconcileClusterMembershipBindingForDelete(roleToKeep, rtbUID string) error {
-	list := func(ns string, selector labels.Selector) ([]runtime.Object, error) {
-		rbs, err := m.crbLister.List(ns, selector)
-		if err != nil {
-			return nil, err
-		}
-
-		var items []runtime.Object
-		for _, rb := range rbs {
-			items = append(items, rb.DeepCopy())
-		}
-		return items, nil
-	}
-
-	convert := func(i interface{}) string {
-		rb, _ := i.(*v1.ClusterRoleBinding)
-		return rb.RoleRef.Name
-	}
-
-	return m.reconcileMembershipBindingForDelete("", roleToKeep, rtbUID, list, convert, m.mgmt.RBAC.ClusterRoleBindings("").ObjectClient())
-}
-
 // The PRTB has been deleted, either delete or update the project membership binding so that the subject
 // is removed from the project if they should be
-func (m *manager) reconcileProjectMembershipBindingForDelete(namespace, roleToKeep, rtbUID string) error {
+func (m *manager) reconcileBusinessMembershipBindingForDelete(namespace, roleToKeep, rtbUID string) error {
 	list := func(ns string, selector labels.Selector) ([]runtime.Object, error) {
 		rbs, err := m.rbLister.List(ns, selector)
 		if err != nil {
@@ -315,7 +203,7 @@ func (m *manager) reconcileProjectMembershipBindingForDelete(namespace, roleToKe
 		return rb.RoleRef.Name
 	}
 
-	return m.reconcileMembershipBindingForDelete(namespace, roleToKeep, rtbUID, list, convert, m.mgmt.RBAC.RoleBindings(namespace).ObjectClient())
+	return m.reconcileMembershipBindingForDelete("", roleToKeep, rtbUID, list, convert, m.mgmt.RBAC.RoleBindings("").ObjectClient())
 }
 
 type listFn func(ns string, selector labels.Selector) ([]runtime.Object, error)
@@ -436,7 +324,7 @@ func (m *manager) grantManagementPlanePrivileges(roleTemplateName string, resour
 // manage all projects in a cluster) grant proper permissions to project-scoped resources. Specifically, this satisfies the use case that
 // a cluster owner should be able to manage the members of all projects in their cluster
 func (m *manager) grantManagementClusterScopedPrivilegesInProjectNamespace(roleTemplateName, projectNamespace string, resources []string,
-	subject v1.Subject, binding *v3.ClusterRoleTemplateBinding) error {
+	subject v1.Subject, binding *v3.BusinessRoleTemplateBinding) error {
 	roles, err := m.gatherAndDedupeRoles(roleTemplateName)
 	if err != nil {
 		return err
@@ -491,7 +379,7 @@ func (m *manager) grantManagementClusterScopedPrivilegesInProjectNamespace(roleT
 // grantManagementProjectScopedPrivilegesInClusterNamespace ensures that project roles grant permissions to certain cluster-scoped
 // resources(notifier, clusterpipelines). These resources exists in cluster namespace but need to be shared between projects.
 func (m *manager) grantManagementProjectScopedPrivilegesInClusterNamespace(roleTemplateName, clusterNamespace string, resources []string,
-	subject v1.Subject, binding *v3.ProjectRoleTemplateBinding) error {
+	subject v1.Subject, binding *v3.BusinessRoleTemplateBinding) error {
 	roles, err := m.gatherAndDedupeRoles(roleTemplateName)
 	if err != nil {
 		return err
@@ -543,18 +431,18 @@ func (m *manager) grantManagementProjectScopedPrivilegesInClusterNamespace(roleT
 	return m.reconcileDesiredMGMTPlaneRoleBindings(currentRBs, desiredRBs, roleBindings)
 }
 
-func (m *manager) gatherAndDedupeRoles(roleTemplateName string) (map[string]*v3.RoleTemplate, error) {
+func (m *manager) gatherAndDedupeRoles(roleTemplateName string) (map[string]*v3.BusinessRoleTemplate, error) {
 	rt, err := m.rtLister.Get("", roleTemplateName)
 	if err != nil {
 		return nil, err
 	}
-	allRoles := map[string]*v3.RoleTemplate{}
+	allRoles := map[string]*v3.BusinessRoleTemplate{}
 	if err := m.gatherRoleTemplates(rt, allRoles); err != nil {
 		return nil, err
 	}
 
 	//de-dupe
-	roles := map[string]*v3.RoleTemplate{}
+	roles := map[string]*v3.BusinessRoleTemplate{}
 	for _, role := range allRoles {
 		roles[role.Name] = role
 	}
@@ -595,7 +483,7 @@ func (m *manager) reconcileDesiredMGMTPlaneRoleBindings(currentRBs, desiredRBs m
 }
 
 // If the roleTemplate has rules granting access to a management plane resource, return the verbs for those rules
-func (m *manager) checkForManagementPlaneRules(role *v3.RoleTemplate, managementPlaneResource string) (map[string]bool, error) {
+func (m *manager) checkForManagementPlaneRules(role *v3.BusinessRoleTemplate, managementPlaneResource string) (map[string]bool, error) {
 	var rules []v1.PolicyRule
 	if role.External {
 		externalRole, err := m.crLister.Get("", role.Name)
@@ -622,7 +510,7 @@ func (m *manager) checkForManagementPlaneRules(role *v3.RoleTemplate, management
 	return verbs, nil
 }
 
-func (m *manager) reconcileManagementPlaneRole(namespace, resource string, rt *v3.RoleTemplate, newVerbs map[string]bool) error {
+func (m *manager) reconcileManagementPlaneRole(namespace, resource string, rt *v3.BusinessRoleTemplate, newVerbs map[string]bool) error {
 	roleCli := m.mgmt.RBAC.Roles(namespace)
 	if role, err := m.rLister.Get(namespace, rt.Name); err == nil && role != nil {
 		currentVerbs := map[string]bool{}
@@ -666,7 +554,7 @@ func (m *manager) reconcileManagementPlaneRole(namespace, resource string, rt *v
 	return nil
 }
 
-func (m *manager) gatherRoleTemplates(rt *v3.RoleTemplate, roleTemplates map[string]*v3.RoleTemplate) error {
+func (m *manager) gatherRoleTemplates(rt *v3.BusinessRoleTemplate, roleTemplates map[string]*v3.BusinessRoleTemplate) error {
 	roleTemplates[rt.Name] = rt
 
 	for _, rtName := range rt.RoleTemplateNames {
@@ -696,17 +584,14 @@ func buildRule(resource string, verbs map[string]bool) v1.PolicyRule {
 
 func buildSubjectFromRTB(binding interface{}) (v1.Subject, error) {
 	var userName, groupPrincipalName, groupName, name, kind string
-	if rtb, ok := binding.(*v3.ProjectRoleTemplateBinding); ok {
-		userName = rtb.UserName
-		groupPrincipalName = rtb.GroupPrincipalName
-		groupName = rtb.GroupName
-	} else if rtb, ok := binding.(*v3.ClusterRoleTemplateBinding); ok {
+	if rtb, ok := binding.(*v3.BusinessRoleTemplateBinding); ok {
 		userName = rtb.UserName
 		groupPrincipalName = rtb.GroupPrincipalName
 		groupName = rtb.GroupName
 	} else {
 		return v1.Subject{}, errors.Errorf("unrecognized roleTemplateBinding type: %v", binding)
 	}
+
 
 	if userName != "" {
 		name = userName

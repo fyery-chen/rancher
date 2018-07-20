@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/objectclient"
-	"github.com/rancher/types/apis/management.cattle.io/v3"
+	"github.com/rancher/types/apis/cloud.huawei.com/v3"
 	"github.com/rancher/types/config"
 	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -222,7 +222,7 @@ func (rb *roleBuilder) reconcileGlobalRoles(mgmt *config.ManagementContext) erro
 	logrus.Info("Reconciling GlobalRoles")
 
 	build := func(current *roleBuilder) (string, runtime.Object) {
-		gr := &v3.GlobalRole{
+		gr := &v3.BusinessGlobalRole{
 			ObjectMeta: v1.ObjectMeta{
 				Name:   current.name,
 				Labels: defaultGRLabel,
@@ -233,7 +233,7 @@ func (rb *roleBuilder) reconcileGlobalRoles(mgmt *config.ManagementContext) erro
 		return gr.Name, gr
 	}
 
-	grCli := mgmt.Management.GlobalRoles("")
+	grCli := mgmt.Business.BusinessGlobalRoles("")
 	gather := func() (map[string]runtime.Object, error) {
 		set := labels.Set(defaultGRLabel)
 		existingList, err := grCli.List(v1.ListOptions{LabelSelector: set.String()})
@@ -250,8 +250,8 @@ func (rb *roleBuilder) reconcileGlobalRoles(mgmt *config.ManagementContext) erro
 	}
 
 	compareAndMod := func(have runtime.Object, want runtime.Object) (bool, runtime.Object, error) {
-		haveGR, ok := have.(*v3.GlobalRole)
-		wantGR, ok2 := want.(*v3.GlobalRole)
+		haveGR, ok := have.(*v3.BusinessGlobalRole)
+		wantGR, ok2 := want.(*v3.BusinessGlobalRole)
 		if !ok || !ok2 {
 			return false, nil, errors.Errorf("unexpected type comparing %v and %v", have, want)
 		}
@@ -271,7 +271,7 @@ func (rb *roleBuilder) reconcileRoleTemplates(mgmt *config.ManagementContext) er
 	logrus.Info("Reconciling RoleTemplates")
 
 	build := func(current *roleBuilder) (string, runtime.Object) {
-		role := &v3.RoleTemplate{
+		role := &v3.BusinessRoleTemplate{
 			ObjectMeta: v1.ObjectMeta{
 				Name:   current.name,
 				Labels: defaultRTLabel,
@@ -287,7 +287,7 @@ func (rb *roleBuilder) reconcileRoleTemplates(mgmt *config.ManagementContext) er
 		return role.Name, role
 	}
 
-	client := mgmt.Management.RoleTemplates("")
+	client := mgmt.Business.BusinessRoleTemplates("")
 	gather := func() (map[string]runtime.Object, error) {
 		set := labels.Set(defaultRTLabel)
 		existingList, err := client.List(v1.ListOptions{LabelSelector: set.String()})
@@ -304,8 +304,8 @@ func (rb *roleBuilder) reconcileRoleTemplates(mgmt *config.ManagementContext) er
 	}
 
 	compareAndMod := func(have runtime.Object, want runtime.Object) (bool, runtime.Object, error) {
-		haveRT, ok := have.(*v3.RoleTemplate)
-		wantRT, ok2 := want.(*v3.RoleTemplate)
+		haveRT, ok := have.(*v3.BusinessRoleTemplate)
+		wantRT, ok2 := want.(*v3.BusinessRoleTemplate)
 		if !ok || !ok2 {
 			return false, nil, errors.Errorf("unexpected type comparing %v and %v", have, want)
 		}

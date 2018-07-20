@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"github.com/rancher/types/apis/management.cattle.io/v3"
+	"github.com/rancher/types/apis/cloud.huawei.com/v3"
 	rbacv1 "github.com/rancher/types/apis/rbac.authorization.k8s.io/v1"
 	"github.com/rancher/types/config"
 	"github.com/sirupsen/logrus"
@@ -30,22 +30,22 @@ type globalRoleLifecycle struct {
 	crClient rbacv1.ClusterRoleInterface
 }
 
-func (gr *globalRoleLifecycle) Create(obj *v3.GlobalRole) (*v3.GlobalRole, error) {
+func (gr *globalRoleLifecycle) Create(obj *v3.BusinessGlobalRole) (*v3.BusinessGlobalRole, error) {
 	err := gr.reconcileGlobalRole(obj)
 	return obj, err
 }
 
-func (gr *globalRoleLifecycle) Updated(obj *v3.GlobalRole) (*v3.GlobalRole, error) {
+func (gr *globalRoleLifecycle) Updated(obj *v3.BusinessGlobalRole) (*v3.BusinessGlobalRole, error) {
 	err := gr.reconcileGlobalRole(obj)
 	return nil, err
 }
 
-func (gr *globalRoleLifecycle) Remove(obj *v3.GlobalRole) (*v3.GlobalRole, error) {
+func (gr *globalRoleLifecycle) Remove(obj *v3.BusinessGlobalRole) (*v3.BusinessGlobalRole, error) {
 	// Don't need to delete the created ClusterRole because owner reference will take care of that
 	return nil, nil
 }
 
-func (gr *globalRoleLifecycle) reconcileGlobalRole(globalRole *v3.GlobalRole) error {
+func (gr *globalRoleLifecycle) reconcileGlobalRole(globalRole *v3.BusinessGlobalRole) error {
 	crName := getCRName(globalRole)
 
 	clusterRole, _ := gr.crLister.Get("", crName)
@@ -88,7 +88,7 @@ func (gr *globalRoleLifecycle) reconcileGlobalRole(globalRole *v3.GlobalRole) er
 
 }
 
-func getCRName(globalRole *v3.GlobalRole) string {
+func getCRName(globalRole *v3.BusinessGlobalRole) string {
 	if crName, ok := globalRole.Annotations[crNameAnnotation]; ok {
 		return crName
 	}

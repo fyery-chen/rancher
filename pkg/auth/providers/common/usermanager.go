@@ -12,6 +12,7 @@ import (
 	"github.com/rancher/rancher/pkg/auth/tokens"
 	"github.com/rancher/rancher/pkg/randomtoken"
 	"github.com/rancher/types/apis/management.cattle.io/v3"
+	businessv3 "github.com/rancher/types/apis/cloud.huawei.com/v3"
 	"github.com/rancher/types/config"
 	"github.com/rancher/types/user"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
@@ -36,15 +37,7 @@ func NewUserManager(scaledContext *config.ScaledContext) (user.Manager, error) {
 		return nil, err
 	}
 
-	crtbInformer := scaledContext.Management.ClusterRoleTemplateBindings("").Controller().Informer()
-	crtbIndexers := map[string]cache.IndexFunc{
-		crtbsByPrincipalIndex: crtbsByPrincipals,
-	}
-	if err := crtbInformer.AddIndexers(crtbIndexers); err != nil {
-		return nil, err
-	}
-
-	prtbInformer := scaledContext.Management.ProjectRoleTemplateBindings("").Controller().Informer()
+	prtbInformer := scaledContext.Business.BusinessRoleTemplateBindings("").Controller().Informer()
 	prtbIndexers := map[string]cache.IndexFunc{
 		prtbsByPrincipalIndex: prtbsByPrincipals,
 	}
@@ -55,17 +48,16 @@ func NewUserManager(scaledContext *config.ScaledContext) (user.Manager, error) {
 	return &userManager{
 		users:              scaledContext.Management.Users(""),
 		userIndexer:        userInformer.GetIndexer(),
-		crtbIndexer:        crtbInformer.GetIndexer(),
 		prtbIndexer:        prtbInformer.GetIndexer(),
 		tokens:             scaledContext.Management.Tokens(""),
 		tokenLister:        scaledContext.Management.Tokens("").Controller().Lister(),
-		globalRoleBindings: scaledContext.Management.GlobalRoleBindings(""),
+		globalRoleBindings: scaledContext.Business.BusinessGlobalRoleBindings(""),
 	}, nil
 }
 
 type userManager struct {
 	users              v3.UserInterface
-	globalRoleBindings v3.GlobalRoleBindingInterface
+	globalRoleBindings businessv3.BusinessGlobalRoleBindingInterface
 	userIndexer        cache.Indexer
 	crtbIndexer        cache.Indexer
 	prtbIndexer        cache.Indexer
@@ -231,7 +223,7 @@ func (m *userManager) EnsureUser(principalName, displayName string) (*v3.User, e
 		return nil, err
 	}
 
-	_, err = m.globalRoleBindings.Create(&v3.GlobalRoleBinding{
+	_, err = m.globalRoleBindings.Create(&businessv3.BusinessGlobalRoleBinding{
 		ObjectMeta: v1.ObjectMeta{
 			GenerateName: "globalrolebinding-",
 		},
@@ -319,24 +311,9 @@ func userByPrincipal(obj interface{}) ([]string, error) {
 	return u.PrincipalIDs, nil
 }
 
-func crtbsByPrincipals(obj interface{}) ([]string, error) {
-	var principals []string
-	b, ok := obj.(*v3.ClusterRoleTemplateBinding)
-	if !ok {
-		return []string{}, nil
-	}
-	if b.GroupPrincipalName != "" {
-		principals = append(principals, b.GroupPrincipalName)
-	}
-	if b.UserPrincipalName != "" {
-		principals = append(principals, b.UserPrincipalName)
-	}
-	return principals, nil
-}
-
 func prtbsByPrincipals(obj interface{}) ([]string, error) {
 	var principals []string
-	b, ok := obj.(*v3.ProjectRoleTemplateBinding)
+	b, ok := obj.(*businessv3.BusinessRoleTemplateBinding)
 	if !ok {
 		return []string{}, nil
 	}
