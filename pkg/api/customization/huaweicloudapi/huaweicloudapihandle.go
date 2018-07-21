@@ -9,6 +9,7 @@ import (
 
 	"github.com/rancher/norman/httperror"
 	"github.com/rancher/norman/types"
+	apicorev1 "github.com/rancher/types/apis/core/v1"
 	businessv3 "github.com/rancher/types/apis/cloud.huawei.com/v3"
 	"github.com/rancher/types/config"
 	"github.com/rancher/types/user"
@@ -20,6 +21,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"bytes"
+)
+
+const (
+	HuaweiCloudAccountSecretName = "huaweicloud-cce-account"
 )
 
 type state struct {
@@ -75,13 +80,15 @@ type AvailabilityZoneInfoList struct {
 func NewHandler(mgmt *config.ScaledContext) *ApiHandler {
 	return &ApiHandler{
 		mgr: mgmt.UserManager,
-		accountClient: mgmt.Business.HuaweiCloudAccounts(""),
+		secretClient: mgmt.Core.Secrets(""),
+		//accountClient: mgmt.Business.HuaweiCloudAccounts(""),
 	}
 }
 
 type ApiHandler struct {
 	mgr user.Manager
-	accountClient businessv3.HuaweiCloudAccountInterface
+	secretClient apicorev1.SecretInterface
+	//accountClient businessv3.HuaweiCloudAccountInterface
 }
 
 func (h *ApiHandler) GetHuaweiCloudApiInfo(actionName string, action *types.Action, apiContext *types.APIContext) error {
@@ -206,12 +213,13 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 	projectId := input.ProjectId
 	zone := input.Zone
 	accessKey, secretKey := "", ""
-	accounts, err := h.accountClient.List(v1.ListOptions{LabelSelector: labels.Everything().String()})
-	logrus.Infof("Retrive accounts: %v", accounts)
-	for _, account := range accounts.Items {
-		accessKey = account.Spec.AccessKey
-		secretKey = account.Spec.SecretKey
-	}
+	//accounts, err := h.accountClient.List(v1.ListOptions{LabelSelector: labels.Everything().String()})
+	//logrus.Infof("Retrive accounts: %v", accounts)
+	//for _, account := range accounts.Items {
+	//	accessKey = account.Spec.AccessKey
+	//	secretKey = account.Spec.SecretKey
+	//}
+	accounts, err := h.secretClient.Get(HuaweiCloudAccountSecretName, v1.GetOptions{})
 
 	msg := ""
 	status := http.StatusOK
