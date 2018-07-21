@@ -80,7 +80,7 @@ type AvailabilityZoneInfoList struct {
 func NewHandler(mgmt *config.ScaledContext) *ApiHandler {
 	return &ApiHandler{
 		mgr: mgmt.UserManager,
-		secretClient: mgmt.Core.Secrets(""),
+		secretClient: mgmt.Core.Secrets("cattle-cce"),
 		//accountClient: mgmt.Business.HuaweiCloudAccounts(""),
 	}
 }
@@ -219,7 +219,7 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 	//	accessKey = account.Spec.AccessKey
 	//	secretKey = account.Spec.SecretKey
 	//}
-	accounts, err := h.secretClient.Get(HuaweiCloudAccountSecretName, v1.GetOptions{})
+	accountsSecret, err := h.secretClient.Get(HuaweiCloudAccountSecretName, v1.GetOptions{})
 
 	msg := ""
 	status := http.StatusOK
