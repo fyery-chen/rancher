@@ -28,12 +28,48 @@ type state struct {
 	Zone 		 string
 	ProjectID    string
 }
-type vpcList struct {
-	vpcs []common.VpcResp	`json:"vpcs,omitempty"`
+type VpcList struct {
+	Vpcs []common.VpcResp	`json:"vpcs,omitempty"`
 }
 
-type subnetList struct {
-	subnets []common.Subnet	`json:"subnets,omitempty"`
+type SubnetList struct {
+	Subnets []common.Subnet	`json:"subnets,omitempty"`
+}
+
+type KeypairInfo struct {
+	Fingerprint string `json:"fingerprint,omitempty"`
+	Name 		string `json:"name,omitempty"`
+	Public_key  string `json:"public_key,omitempty"`
+}
+
+type Keypair struct {
+	Keypair     KeypairInfo 	`json:"keypair,omitempty"`
+}
+
+type KeypairList struct {
+	Keypairs 	[]Keypair 		`json:"keypairs,omitempty"`
+}
+
+type Flavor struct {
+	Name  	string `json:"name,omitempty"`
+	Vcpus   string `json:"vcpus,omitempty"`
+	Ram     int    `json:"ram,omitempty"`
+}
+
+type FlavorList struct {
+	Flavors  []Flavor `json:"flavors,omitempty"`
+}
+
+type ZoneState struct {
+	Available  bool `json:"available,omitempty"`
+}
+type AvailabilityZone struct {
+	ZoneState ZoneState `json:"zoneState,omitempty"`
+	ZoneName  string 	`json:"zoneName,omitempty"`
+}
+
+type AvailabilityZoneInfoList struct {
+	AvailabilityZoneInfo []AvailabilityZone `json:"availabilityZoneInfo,omitempty"`
 }
 
 func NewHandler(mgmt *config.ScaledContext) *ApiHandler {
@@ -199,9 +235,11 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 		Zone: zone,
 		ProjectID: projectId,
 	}
+
+	//1.Retrieve vpc and subnet info
 	uri := "/v1/" + state.ProjectID + "/vpcs"
-	vpcs := &vpcList{}
-	subnets := &subnetList{}
+	vpcs := &VpcList{}
+	subnets := &SubnetList{}
 	resp, _, err := cceHTTPRequest(state, uri, http.MethodGet, common.ServiceVPC, nil)
 	if err != nil {
 		rtn["message"] = err.Error()
@@ -218,7 +256,8 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 		return nil
 	}
-	for _, vpc := range vpcs.vpcs {
+	var vpcOutputs []businessv3.VpcInfo
+	for _, vpc := range vpcs.Vpcs {
 		logrus.Infof("status: %s", vpc.Status)
 		uri = "/v1/" + state.ProjectID + "/subnets"
 		resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceVPC, nil)
@@ -237,7 +276,103 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 			return nil
 		}
+		var subnetOutputs  []businessv3.SubnetInfo
+		for _, subnet := range subnets.Subnets {
+			subnetOutput := businessv3.SubnetInfo{
+				SubnetName: subnet.Name,
+				SubnetId: subnet.Id,
+			}
+			subnetOutputs = append(subnetOutputs, subnetOutput)
+		}
+		vpcOutput := businessv3.VpcInfo{
+			VpcName: vpc.Name,
+			VpcId: vpc.Id,
+			SubnetInfo: subnetOutputs,
+		}
+		vpcOutputs = append(vpcOutputs, vpcOutput)
 	}
+	rtn["vpcInfo"] = vpcOutputs
+	//2.Retrieve sshkey info
+	uri = "/v1/" + state.ProjectID + "/os-keypairs"
+	keypairs := &KeypairList{}
+	resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceECS, nil)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	err = json.Unmarshal(resp, keypairs)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	var sshkeyNameOutput []string
+	for _, keypair := range keypairs.Keypairs {
+		sshkeyNameOutput = append(sshkeyNameOutput, keypair.Keypair.Name)
+	}
+	rtn["sshkeyName"] = sshkeyNameOutput
+	//3.Retrieve node flavor
+	uri = "/v1/" + state.ProjectID + "/cloudservers/flavors"
+	flavors := &FlavorList{}
+	resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceECS, nil)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	err = json.Unmarshal(resp, flavors)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	var nodeFlavorOutputs []businessv3.NodeFlavor
+	for _, flavor := range flavors.Flavors {
+		nodeFlavorOutput := businessv3.NodeFlavor{
+			Name: flavor.Name,
+			Vcpus: flavor.Vcpus,
+			Ram: flavor.Ram,
+		}
+		nodeFlavorOutputs = append(nodeFlavorOutputs, nodeFlavorOutput)
+	}
+	rtn["nodeFlavor"] = nodeFlavorOutputs
+	//4.Retrieve available zone
+	uri = "/v1/" + state.ProjectID + "/os-availability-zone"
+	azs := &AvailabilityZoneInfoList{}
+	resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceECS, nil)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	err = json.Unmarshal(resp, azs)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	var availableZoneOutputs []businessv3.AvailableZone
+	for _, az := range azs.AvailabilityZoneInfo {
+		availableZoneOutput := businessv3.AvailableZone{
+			ZoneName: az.ZoneName,
+			ZoneState: az.ZoneState.Available,
+		}
+		availableZoneOutputs = append(availableZoneOutputs, availableZoneOutput)
+	}
+	rtn["availableZone"] = availableZoneOutputs
 
 	apiContext.WriteResponse(status, rtn)
 
