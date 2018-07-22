@@ -59,6 +59,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ClusterEventList{},
 		&ClusterRegistrationToken{},
 		&ClusterRegistrationTokenList{},
+		&NodePool{},
+		&NodePoolList{},
+		&Node{},
+		&NodeList{},
+		&NodeDriver{},
+		&NodeDriverList{},
+		&NodeTemplate{},
+		&NodeTemplateList{},
 	)
 	return nil
 }

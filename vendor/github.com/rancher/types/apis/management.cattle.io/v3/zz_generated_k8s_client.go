@@ -28,6 +28,10 @@ type Interface interface {
 	ClustersGetter
 	ClusterEventsGetter
 	ClusterRegistrationTokensGetter
+	NodePoolsGetter
+	NodesGetter
+	NodeDriversGetter
+	NodeTemplatesGetter
 }
 
 type Client struct {
@@ -48,6 +52,10 @@ type Client struct {
 	clusterControllers                  map[string]ClusterController
 	clusterEventControllers             map[string]ClusterEventController
 	clusterRegistrationTokenControllers map[string]ClusterRegistrationTokenController
+	nodePoolControllers                 map[string]NodePoolController
+	nodeControllers                     map[string]NodeController
+	nodeDriverControllers               map[string]NodeDriverController
+	nodeTemplateControllers             map[string]NodeTemplateController
 }
 
 func NewForConfig(config rest.Config) (Interface, error) {
@@ -77,6 +85,10 @@ func NewForConfig(config rest.Config) (Interface, error) {
 		clusterControllers:                  map[string]ClusterController{},
 		clusterEventControllers:             map[string]ClusterEventController{},
 		clusterRegistrationTokenControllers: map[string]ClusterRegistrationTokenController{},
+		nodePoolControllers:                 map[string]NodePoolController{},
+		nodeControllers:                     map[string]NodeController{},
+		nodeDriverControllers:               map[string]NodeDriverController{},
+		nodeTemplateControllers:             map[string]NodeTemplateController{},
 	}, nil
 }
 
@@ -255,6 +267,58 @@ type ClusterRegistrationTokensGetter interface {
 func (c *Client) ClusterRegistrationTokens(namespace string) ClusterRegistrationTokenInterface {
 	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &ClusterRegistrationTokenResource, ClusterRegistrationTokenGroupVersionKind, clusterRegistrationTokenFactory{})
 	return &clusterRegistrationTokenClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type NodePoolsGetter interface {
+	NodePools(namespace string) NodePoolInterface
+}
+
+func (c *Client) NodePools(namespace string) NodePoolInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &NodePoolResource, NodePoolGroupVersionKind, nodePoolFactory{})
+	return &nodePoolClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type NodesGetter interface {
+	Nodes(namespace string) NodeInterface
+}
+
+func (c *Client) Nodes(namespace string) NodeInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &NodeResource, NodeGroupVersionKind, nodeFactory{})
+	return &nodeClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type NodeDriversGetter interface {
+	NodeDrivers(namespace string) NodeDriverInterface
+}
+
+func (c *Client) NodeDrivers(namespace string) NodeDriverInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &NodeDriverResource, NodeDriverGroupVersionKind, nodeDriverFactory{})
+	return &nodeDriverClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type NodeTemplatesGetter interface {
+	NodeTemplates(namespace string) NodeTemplateInterface
+}
+
+func (c *Client) NodeTemplates(namespace string) NodeTemplateInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &NodeTemplateResource, NodeTemplateGroupVersionKind, nodeTemplateFactory{})
+	return &nodeTemplateClient{
 		ns:           namespace,
 		client:       c,
 		objectClient: objectClient,

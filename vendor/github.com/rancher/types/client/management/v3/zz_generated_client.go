@@ -20,6 +20,10 @@ type Client struct {
 	Cluster                  ClusterOperations
 	ClusterEvent             ClusterEventOperations
 	ClusterRegistrationToken ClusterRegistrationTokenOperations
+	NodePool                 NodePoolOperations
+	Node                     NodeOperations
+	NodeDriver               NodeDriverOperations
+	NodeTemplate             NodeTemplateOperations
 }
 
 func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
@@ -45,6 +49,10 @@ func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
 	client.Cluster = newClusterClient(client)
 	client.ClusterEvent = newClusterEventClient(client)
 	client.ClusterRegistrationToken = newClusterRegistrationTokenClient(client)
+	client.NodePool = newNodePoolClient(client)
+	client.Node = newNodeClient(client)
+	client.NodeDriver = newNodeDriverClient(client)
+	client.NodeTemplate = newNodeTemplateClient(client)
 
 	return client, nil
 }

@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"bytes"
 	"k8s.io/apimachinery/pkg/labels"
+	"github.com/rancher/norman/types/convert"
+	"k8s.io/apimachinery/pkg/fields"
 )
 
 const (
@@ -84,6 +86,7 @@ func NewHandler(mgmt *config.ScaledContext) *ApiHandler {
 		secretClient: mgmt.Core.Secrets("cattle-cce"),
 		clusterClient: mgmt.Management.Clusters(""),
 		businessClient: mgmt.Business.Businesses(""),
+		nodeClient: mgmt.Management.Nodes(""),
 	}
 }
 
@@ -92,6 +95,7 @@ type ApiHandler struct {
 	secretClient apicorev1.SecretInterface
 	clusterClient v3.ClusterInterface
 	businessClient businessv3.BusinessInterface
+	nodeClient v3.NodeInterface
 }
 
 func (h *ApiHandler) HuaweiCloudActionHandler(actionName string, action *types.Action, apiContext *types.APIContext) error {
@@ -240,12 +244,9 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 	rtn := map[string]interface{}{
 		"message": msg,
-		"vpcInfo": []businessv3.VpcInfo{},
-		"sshKeyName": []string{},
-		"nodeFlavor": []businessv3.NodeFlavor{},
-		"availableZone": []businessv3.AvailableZone{},
 		"type":    "huaweiCloudApiInformationOutput",
 	}
+	apiInforOutput := &businessv3.HuaweiCloudApiInformationOutput{}
     logrus.Infof("requested info is: %s, %s, %s, %s", projectId, zone, accessKey, secretKey)
 	if projectId == "" || zone == "" || accessKey == "" || secretKey == "" {
 		rtn["message"] = "can not find projectId or zone or accessKey or secretKey"
@@ -318,6 +319,7 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 		vpcOutputs = append(vpcOutputs, vpcOutput)
 	}
 	rtn["vpcInfo"] = vpcOutputs
+	apiInforOutput.VpcInfo = vpcOutputs
 	//2.Retrieve sshkey info
 	uri = "/v2/" + state.ProjectID + "/os-keypairs"
 	keypairs := &KeypairList{}
@@ -342,6 +344,7 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 		sshkeyNameOutput = append(sshkeyNameOutput, keypair.Keypair.Name)
 	}
 	rtn["sshkeyName"] = sshkeyNameOutput
+	apiInforOutput.SshKeyName = sshkeyNameOutput
 	//3.Retrieve node flavor
 	uri = "/v1/" + state.ProjectID + "/cloudservers/flavors"
 	flavors := &FlavorList{}
@@ -371,6 +374,7 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 		nodeFlavorOutputs = append(nodeFlavorOutputs, nodeFlavorOutput)
 	}
 	rtn["nodeFlavor"] = nodeFlavorOutputs
+	apiInforOutput.NodeFlavor = nodeFlavorOutputs
 	//4.Retrieve available zone
 	uri = "/v2/" + state.ProjectID + "/os-availability-zone"
 	azs := &AvailabilityZoneInfoList{}
@@ -399,8 +403,12 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 		availableZoneOutputs = append(availableZoneOutputs, availableZoneOutput)
 	}
 	rtn["availableZone"] = availableZoneOutputs
-
-	apiContext.WriteResponse(status, rtn)
+	logrus.Infof("%v, %v, %v, %v", vpcOutputs, sshkeyNameOutput,nodeFlavorOutputs, availableZoneOutputs)
+	apiInforOutput.AvailableZone = availableZoneOutputs
+	rtnOk := map[string]interface{}{}
+	convert.ToObj(apiInforOutput, &rtnOk)
+	logrus.Infof("apiInfoOutput: %v, rtnOk: %v", *apiInforOutput, rtnOk)
+	apiContext.WriteResponse(status, rtnOk)
 
 	return nil
 }
@@ -440,40 +448,51 @@ func (h *ApiHandler) checkoutQuota(apiContext *types.APIContext) (error) {
 		return httperror.NewAPIError(httperror.InvalidBodyContent, "")
 	}
 
-	//check business quota if it is cce provider
-	businessName := input.BusinessName
-	set := labels.Set{}
-	set["businessName"] = businessName
-	var requestedHosts int
-	businesses, err := h.businessClient.List(v1.ListOptions{LabelSelector: labels.Everything().String()})
-	logrus.Infof("Retrive businesses: %v", businesses)
-	clusters, err := h.clusterClient.List(v1.ListOptions{LabelSelector: set.String()})
-	for _, _ = range clusters.Items {
-		requestedHosts += 10
-	}
-
-	msg := ""
+	msg := "There is enough quota"
 	status := http.StatusOK
-
-	for _, businessQuota := range businesses.Items {
-		logrus.Infof("Business name: %s input name: %s", businessQuota.Name, input.BusinessName)
-		if businessQuota.Name == input.BusinessName {
-			requestedHosts += input.NodeCount
-			if requestedHosts > businessQuota.Spec.NodeCount {
-				msg = "Checkout failed, there is no enough quotas"
-				status = http.StatusBadRequest
-			}
-			msg = "There is enough quota"
-		}
-	}
 
 	rtn := map[string]interface{}{
 		"message": msg,
 		"type":    "businessQuotaCheckOutput",
 	}
+	//check business quota if it is cce provider
+	businessName := input.BusinessName
+	set := labels.Set{}
+	set["businessName"] = businessName
+	business, err := h.businessClient.Get(businessName, v1.GetOptions{})
+	if err != nil {
+		status = http.StatusBadRequest
+		rtn["message"] = "get business error"
+		apiContext.WriteResponse(status, rtn)
+		return nil
+	}
+	logrus.Infof("Retrive businesses: %v", business)
+	clusters, err := h.clusterClient.List(v1.ListOptions{LabelSelector: set.String()})
+	if err != nil {
+		status = http.StatusBadRequest
+		rtn["message"] = "get clusters error"
+		apiContext.WriteResponse(status, rtn)
+		return nil
+	}
+	field := fields.Set{}
+	requestedHosts := 0
+	for _, cluster := range clusters.Items {
+		field["namespace"] = cluster.Name
+		nodes, err := h.nodeClient.List(v1.ListOptions{FieldSelector: field.String()})
+		if err != nil {
+			status = http.StatusBadRequest
+			rtn["message"] = "get nodes error"
+			apiContext.WriteResponse(status, rtn)
+			return nil
+		}
+		requestedHosts += len(nodes.Items)
+	}
 
-	if rtn["message"] == "" {
-		rtn["message"] = "Can not find business"
+	logrus.Infof("Business name: %s input name: %s", business.Name, input.BusinessName)
+	requestedHosts += input.NodeCount
+	if requestedHosts > business.Spec.NodeCount {
+		rtn["message"] = "Checkout failed, there is no enough quotas"
+		status = http.StatusBadRequest
 	}
 	apiContext.WriteResponse(status, rtn)
 
