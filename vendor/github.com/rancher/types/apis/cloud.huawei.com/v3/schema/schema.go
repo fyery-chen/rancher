@@ -26,23 +26,21 @@ func businessTypes(schema *types.Schemas) *types.Schemas {
 			m.DisplayName{}).
 		MustImport(&Version, v3.Business{}).
 		MustImport(&Version, v3.BusinessQuotaCheck{}).
+		MustImport(&Version, v3.SubnetInfo{}).
+		MustImport(&Version, v3.VpcInfo{}).
+		MustImport(&Version, v3.NodeFlavor{}).
+		MustImport(&Version, v3.AvailableZone{}).
 		MustImport(&Version, v3.BusinessQuotaCheckOutput{}).
 		MustImport(&Version, v3.HuaweiCloudApiInformationOutput{}).
 		MustImport(&Version, v3.HuaweiCloudApiInformationInput{}).
 		MustImportAndCustomize(&Version, v3.Business{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"checkout": {
-					Input:  "businessQuotaCheck",
-					Output: "businessQuotaCheckOutput",
-				},
+			schema.ResourceActions["checkout"] = types.Action{
+				Input:  "businessQuotaCheck",
+				Output: "businessQuotaCheckOutput",
 			}
-		}).
-		MustImportAndCustomize(&Version, v3.Business{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"getHuaweiCloudApiInfo": {
-					Input:  "huaweiCloudApiInformationInput",
-					Output: "huaweiCloudApiInformationOutput",
-				},
+			schema.ResourceActions["getHuaweiCloudApiInfo"] = types.Action{
+				Input:  "huaweiCloudApiInformationInput",
+				Output: "huaweiCloudApiInformationOutput",
 			}
 		})
 }

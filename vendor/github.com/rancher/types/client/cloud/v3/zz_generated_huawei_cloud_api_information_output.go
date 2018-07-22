@@ -10,9 +10,9 @@ const (
 )
 
 type HuaweiCloudApiInformationOutput struct {
-	AvailableZone []string     `json:"availableZone,omitempty" yaml:"availableZone,omitempty"`
-	Message       string       `json:"message,omitempty" yaml:"message,omitempty"`
-	NodeFlavor    []NodeFlavor `json:"nodeFlavor,omitempty" yaml:"nodeFlavor,omitempty"`
-	SshKeyName    string       `json:"sshKeyName,omitempty" yaml:"sshKeyName,omitempty"`
-	VpcInfo       []VpcInfo    `json:"vpcInfo,omitempty" yaml:"vpcInfo,omitempty"`
+	AvailableZone []AvailableZone `json:"availableZone,omitempty" yaml:"availableZone,omitempty"`
+	Message       string          `json:"message,omitempty" yaml:"message,omitempty"`
+	NodeFlavor    []NodeFlavor    `json:"nodeFlavor,omitempty" yaml:"nodeFlavor,omitempty"`
+	SshKeyName    []string        `json:"sshKeyName,omitempty" yaml:"sshKeyName,omitempty"`
+	VpcInfo       []VpcInfo       `json:"vpcInfo,omitempty" yaml:"vpcInfo,omitempty"`
 }

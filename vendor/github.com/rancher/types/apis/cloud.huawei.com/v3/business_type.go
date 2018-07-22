@@ -47,14 +47,14 @@ type VpcInfo struct {
 }
 
 type NodeFlavor struct {
-	Name 		string `json:"name,omitempty"`
-	Vcpus       string `json:"vcpus,omitempty"`
-	Ram     	int    `json:"ram,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Vcpus string `json:"vcpus,omitempty"`
+	Ram   int    `json:"ram,omitempty"`
 }
 
 type AvailableZone struct {
-	ZoneName 	string `json:"zoneName,omitempty"`
-	ZoneState   bool   `json:"zoneState,omitempty"`
+	ZoneName  string `json:"zoneName,omitempty"`
+	ZoneState bool   `json:"zoneState,omitempty"`
 }
 
 type HuaweiCloudApiInformationInput struct {
@@ -63,9 +63,9 @@ type HuaweiCloudApiInformationInput struct {
 }
 
 type HuaweiCloudApiInformationOutput struct {
-	VpcInfo       []VpcInfo    		`json:"vpcInfo,omitempty"`
-	SshKeyName    []string     		`json:"sshKeyName,omitempty"`
-	NodeFlavor    []NodeFlavor 		`json:"nodeFlavor,omitempty"`
-	AvailableZone []AvailableZone   `json:"availableZone,omitempty"`
-	Message       string       		`json:"message,omitempty"`
+	VpcInfo       []VpcInfo       `json:"vpcInfo,omitempty"`
+	SshKeyName    []string        `json:"sshKeyName,omitempty"`
+	NodeFlavor    []NodeFlavor    `json:"nodeFlavor,omitempty"`
+	AvailableZone []AvailableZone `json:"availableZone,omitempty"`
+	Message       string          `json:"message,omitempty"`
 }

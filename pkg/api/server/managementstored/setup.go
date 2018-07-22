@@ -8,7 +8,6 @@ import (
 	"github.com/rancher/norman/types"
 	"github.com/rancher/rancher/pkg/api/customization/authn"
 	"github.com/rancher/rancher/pkg/api/customization/roletemplatebinding"
-	"github.com/rancher/rancher/pkg/api/customization/business"
 	"github.com/rancher/rancher/pkg/api/customization/huaweicloudapi"
 	"github.com/rancher/rancher/pkg/api/customization/setting"
 	"github.com/rancher/rancher/pkg/api/store/preference"
@@ -52,7 +51,6 @@ func Setup(ctx context.Context, apiContext *config.ScaledContext) error {
 	Setting(schemas)
 	Preference(schemas, apiContext)
 	BusinessRoleTemplateBinding(schemas, apiContext)
-	BusinessQuota(schemas, apiContext)
 	HuaweiCloudApi(schemas, apiContext)
 
 	principals.Schema(ctx, apiContext, schemas)
@@ -88,19 +86,11 @@ func BusinessRoleTemplateBinding(schemas *types.Schemas, management *config.Scal
 	schema.Validator = roletemplatebinding.NewCRTBValidator(management)
 }
 
-func BusinessQuota(schemas *types.Schemas, managementContext *config.ScaledContext) {
-	handler := business.NewbusinessHandler(managementContext)
-
-	schema := schemas.Schema(&businessschema.Version, businessclient.BusinessType)
-	schema.Formatter = business.Formatter
-	schema.ActionHandler = handler.Checkout
-}
-
 func HuaweiCloudApi(schemas *types.Schemas, managementContext *config.ScaledContext) {
 	handler := huaweicloudapi.NewHandler(managementContext)
 
-	schema := schemas.Schema(&businessschema.Version, businessclient.HuaweiCloudAccountType)
+	schema := schemas.Schema(&businessschema.Version, businessclient.BusinessType)
 	schema.Formatter = huaweicloudapi.Formatter
-	schema.ActionHandler = handler.GetHuaweiCloudApiInfo
+	schema.ActionHandler = handler.HuaweiCloudActionHandler
 }
 

@@ -1,14 +1,14 @@
 package client
 
 const (
-	NodeFlavorType            = "nodeFlavor"
-	NodeFlavorFieldCpu        = "cpu"
-	NodeFlavorFieldFlavorName = "flavorName"
-	NodeFlavorFieldMemory     = "memory"
+	NodeFlavorType       = "nodeFlavor"
+	NodeFlavorFieldName  = "name"
+	NodeFlavorFieldRam   = "ram"
+	NodeFlavorFieldVcpus = "vcpus"
 )
 
 type NodeFlavor struct {
-	Cpu        int64  `json:"cpu,omitempty" yaml:"cpu,omitempty"`
-	FlavorName string `json:"flavorName,omitempty" yaml:"flavorName,omitempty"`
-	Memory     string `json:"memory,omitempty" yaml:"memory,omitempty"`
+	Name  string `json:"name,omitempty" yaml:"name,omitempty"`
+	Ram   int64  `json:"ram,omitempty" yaml:"ram,omitempty"`
+	Vcpus string `json:"vcpus,omitempty" yaml:"vcpus,omitempty"`
 }

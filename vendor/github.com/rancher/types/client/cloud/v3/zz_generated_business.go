@@ -56,6 +56,8 @@ type BusinessOperations interface {
 	ByID(id string) (*Business, error)
 	Delete(container *Business) error
 
+	ActionCheckout(resource *Business, input *BusinessQuotaCheck) (*BusinessQuotaCheckOutput, error)
+
 	ActionGetHuaweiCloudApiInfo(resource *Business, input *HuaweiCloudApiInformationInput) (*HuaweiCloudApiInformationOutput, error)
 }
 
@@ -102,6 +104,12 @@ func (c *BusinessClient) ByID(id string) (*Business, error) {
 
 func (c *BusinessClient) Delete(container *Business) error {
 	return c.apiClient.Ops.DoResourceDelete(BusinessType, &container.Resource)
+}
+
+func (c *BusinessClient) ActionCheckout(resource *Business, input *BusinessQuotaCheck) (*BusinessQuotaCheckOutput, error) {
+	resp := &BusinessQuotaCheckOutput{}
+	err := c.apiClient.Ops.DoAction(BusinessType, "checkout", &resource.Resource, input, resp)
+	return resp, err
 }
 
 func (c *BusinessClient) ActionGetHuaweiCloudApiInfo(resource *Business, input *HuaweiCloudApiInformationInput) (*HuaweiCloudApiInformationOutput, error) {
