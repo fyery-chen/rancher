@@ -18,7 +18,31 @@ var (
 		Init(authzTypes).
 		Init(schemaTypes).
 		Init(businessTypes)
+
+	PublicVersion = types.APIVersion{
+		Version: "v3-public",
+		Group:   "cloud.huawei.com",
+		Path:    "/v3-public",
+	}
+
+	PublicSchemas = factory.Schemas(&PublicVersion).
+			Init(pbusinessTypes)
 )
+
+func pbusinessTypes(schema *types.Schemas) *types.Schemas {
+	return schema.
+		AddMapperForType(&Version, v3.Business{},
+			m.DisplayName{}).
+		MustImport(&Version, v3.Business{}).
+		MustImport(&Version, v3.BusinessQuotaCheck{}).
+		MustImport(&Version, v3.BusinessQuotaCheckOutput{}).
+		MustImportAndCustomize(&Version, v3.Business{}, func(schema *types.Schema) {
+			schema.ResourceActions["checkout"] = types.Action{
+				Input:  "businessQuotaCheck",
+				Output: "businessQuotaCheckOutput",
+			}
+		})
+}
 
 func businessTypes(schema *types.Schemas) *types.Schemas {
 	return schema.

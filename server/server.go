@@ -38,7 +38,12 @@ func Start(ctx context.Context, httpPort, httpsPort int, scaledContext *config.S
 		return err
 	}
 
-	root.PathPrefix("/v1").Handler(authedHandler)
+	checkoutHandle, err := authrequests.NewCheckoutFilter(ctx, scaledContext)
+	if err != nil {
+		return err
+	}
+
+	root.PathPrefix("/v3-public").Handler(checkoutHandle)
 	root.PathPrefix("/v3").Handler(authedHandler)
 	root.PathPrefix("/k8s/clusters/").Handler(authedHandler)
 	root.PathPrefix("/meta").Handler(authedHandler)

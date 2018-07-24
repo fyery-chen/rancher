@@ -21,13 +21,46 @@ func NewAuthenticationFilter(ctx context.Context, managementContext *config.Scal
 	}, nil
 }
 
+func NewCheckoutFilter(ctx context.Context, managementContext *config.ScaledContext) (http.Handler, error) {
+	if managementContext == nil {
+		return nil, fmt.Errorf("Failed to build NewCheckoutFilter, nil ManagementContext")
+	}
+	checkout := NewAuthenticator(ctx, managementContext)
+	return &checkoutHandler{
+		checkout: checkout,
+	}, nil
+}
+
 type authHeaderHandler struct {
 	auth Authenticator
 	next http.Handler
 }
 
+type checkoutHandler struct {
+	checkout Authenticator
+}
+
 func (h authHeaderHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	authed, user, groups, err := h.auth.Authenticate(req)
+	if err != nil || !authed {
+		util.ReturnHTTPError(rw, req, 401, err.Error())
+		return
+	}
+
+	logrus.Debugf("Impersonating user %v, groups %v", user, groups)
+
+	req.Header.Set("Impersonate-User", user)
+
+	req.Header.Del("Impersonate-Group")
+	for _, group := range groups {
+		req.Header.Add("Impersonate-Group", group)
+	}
+
+	h.next.ServeHTTP(rw, req)
+}
+
+func (h checkoutHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	err := h.checkout.Checkout(req)
 	if err != nil || !authed {
 		util.ReturnHTTPError(rw, req, 401, err.Error())
 		return

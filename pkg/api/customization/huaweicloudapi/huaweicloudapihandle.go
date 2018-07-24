@@ -63,7 +63,7 @@ type HighwaySubnetList struct {
 func NewHandler(mgmt *config.ScaledContext) *ApiHandler {
 	return &ApiHandler{
 		mgr: mgmt.UserManager,
-		secretClient: mgmt.Core.Secrets("cattle-cce"),
+		secretClient: mgmt.Core.Secrets("consumer-cloud"),
 		clusterClient: mgmt.Management.Clusters(""),
 		businessClient: mgmt.Business.Businesses(""),
 		nodeClient: mgmt.Management.Nodes(""),

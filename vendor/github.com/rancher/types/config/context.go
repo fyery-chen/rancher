@@ -46,6 +46,7 @@ type ScaledContext struct {
 	K8sClient         kubernetes.Interface
 	APIExtClient      clientset.Interface
 	Schemas           *types.Schemas
+	PublicSchemas	 *types.Schemas
 	AccessControl     types.AccessControl
 	Dialer            dialer.Factory
 	UserManager       user.Manager
@@ -127,6 +128,9 @@ func NewScaledContext(config rest.Config) (*ScaledContext, error) {
 	context.Schemas = types.NewSchemas().
 		AddSchemas(managementSchema.Schemas).
 		AddSchemas(businessSchema.Schemas)
+
+	context.PublicSchemas = types.NewSchemas().
+		AddSchemas(businessSchema.PublicSchemas)
 
 	return context, err
 }
