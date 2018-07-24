@@ -1,14 +1,10 @@
 package client
 
 const (
-	VpcInfoType            = "vpcInfo"
-	VpcInfoFieldSubnetInfo = "subnetInfo"
-	VpcInfoFieldVpcId      = "vpcId"
-	VpcInfoFieldVpcName    = "vpcName"
+	VpcInfoType         = "vpcInfo"
+	VpcInfoFieldVpcName = "name"
 )
 
 type VpcInfo struct {
-	SubnetInfo []SubnetInfo `json:"subnetInfo,omitempty" yaml:"subnetInfo,omitempty"`
-	VpcId      string       `json:"vpcId,omitempty" yaml:"vpcId,omitempty"`
-	VpcName    string       `json:"vpcName,omitempty" yaml:"vpcName,omitempty"`
+	VpcName string `json:"name,omitempty" yaml:"name,omitempty"`
 }

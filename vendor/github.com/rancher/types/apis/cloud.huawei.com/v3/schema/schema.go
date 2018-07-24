@@ -29,7 +29,11 @@ func businessTypes(schema *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.SubnetInfo{}).
 		MustImport(&Version, v3.VpcInfo{}).
 		MustImport(&Version, v3.NodeFlavor{}).
-		MustImport(&Version, v3.AvailableZone{}).
+		MustImport(&Version, v3.SshKeyInfo{}).
+		MustImport(&Version, v3.SshKey{}).
+		MustImport(&Version, v3.AvailabilityZone{}).
+		MustImport(&Version, v3.ZoneState{}).
+		MustImport(&Version, v3.HighwaySubnet{}).
 		MustImport(&Version, v3.BusinessQuotaCheckOutput{}).
 		MustImport(&Version, v3.HuaweiCloudApiInformationOutput{}).
 		MustImport(&Version, v3.HuaweiCloudApiInformationInput{}).

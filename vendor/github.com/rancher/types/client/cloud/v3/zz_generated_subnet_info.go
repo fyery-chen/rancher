@@ -2,11 +2,11 @@ package client
 
 const (
 	SubnetInfoType            = "subnetInfo"
-	SubnetInfoFieldSubnetId   = "subnetId"
-	SubnetInfoFieldSubnetName = "subnetName"
+	SubnetInfoFieldSubnetName = "name"
+	SubnetInfoFieldVpcId      = "vpc_id"
 )
 
 type SubnetInfo struct {
-	SubnetId   string `json:"subnetId,omitempty" yaml:"subnetId,omitempty"`
-	SubnetName string `json:"subnetName,omitempty" yaml:"subnetName,omitempty"`
+	SubnetName string `json:"name,omitempty" yaml:"name,omitempty"`
+	VpcId      string `json:"vpc_id,omitempty" yaml:"vpc_id,omitempty"`
 }

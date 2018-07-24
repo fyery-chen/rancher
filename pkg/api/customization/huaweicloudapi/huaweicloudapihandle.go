@@ -37,47 +37,27 @@ type state struct {
 	ProjectID    string
 }
 type VpcList struct {
-	Vpcs []common.VpcResp	`json:"vpcs,omitempty"`
+	Vpcs []businessv3.VpcInfo	`json:"vpcs,omitempty"`
 }
 
 type SubnetList struct {
-	Subnets []common.Subnet	`json:"subnets,omitempty"`
-}
-
-type KeypairInfo struct {
-	Fingerprint string `json:"fingerprint,omitempty"`
-	Name 		string `json:"name,omitempty"`
-	Public_key  string `json:"public_key,omitempty"`
-}
-
-type Keypair struct {
-	Keypair     KeypairInfo 	`json:"keypair,omitempty"`
+	Subnets []businessv3.SubnetInfo	`json:"subnets,omitempty"`
 }
 
 type KeypairList struct {
-	Keypairs 	[]Keypair 		`json:"keypairs,omitempty"`
-}
-
-type Flavor struct {
-	Name  	string `json:"name,omitempty"`
-	Vcpus   string `json:"vcpus,omitempty"`
-	Ram     int    `json:"ram,omitempty"`
+	Keypairs 	[]businessv3.SshKey 		`json:"keypairs,omitempty"`
 }
 
 type FlavorList struct {
-	Flavors  []Flavor `json:"flavors,omitempty"`
-}
-
-type ZoneState struct {
-	Available  bool `json:"available,omitempty"`
-}
-type AvailabilityZone struct {
-	ZoneState ZoneState `json:"zoneState,omitempty"`
-	ZoneName  string 	`json:"zoneName,omitempty"`
+	Flavors  []businessv3.NodeFlavor `json:"flavors,omitempty"`
 }
 
 type AvailabilityZoneInfoList struct {
-	AvailabilityZoneInfo []AvailabilityZone `json:"availabilityZoneInfo,omitempty"`
+	AvailabilityZoneInfo []businessv3.AvailabilityZone `json:"availabilityZoneInfo,omitempty"`
+}
+
+type HighwaySubnetList struct {
+	HighwaySubnet []businessv3.HighwaySubnet    `json:"networks,omitempty"`
 }
 
 func NewHandler(mgmt *config.ScaledContext) *ApiHandler {
@@ -283,43 +263,27 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 		return nil
 	}
-	var vpcOutputs []businessv3.VpcInfo
-	for _, vpc := range vpcs.Vpcs {
-		logrus.Infof("status: %s", vpc.Status)
-		uri = "/v1/" + state.ProjectID + "/subnets"
-		resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceVPC, nil)
-		if err != nil {
-			rtn["message"] = err.Error()
-			status = http.StatusBadRequest
-			apiContext.WriteResponse(status, rtn)
 
-			return nil
-		}
-		err = json.Unmarshal(resp, subnets)
-		if err != nil {
-			rtn["message"] = err.Error()
-			status = http.StatusBadRequest
-			apiContext.WriteResponse(status, rtn)
+	uri = "/v1/" + state.ProjectID + "/subnets"
+	resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceVPC, nil)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
 
-			return nil
-		}
-		var subnetOutputs  []businessv3.SubnetInfo
-		for _, subnet := range subnets.Subnets {
-			subnetOutput := businessv3.SubnetInfo{
-				SubnetName: subnet.Name,
-				SubnetId: subnet.Id,
-			}
-			subnetOutputs = append(subnetOutputs, subnetOutput)
-		}
-		vpcOutput := businessv3.VpcInfo{
-			VpcName: vpc.Name,
-			VpcId: vpc.Id,
-			SubnetInfo: subnetOutputs,
-		}
-		vpcOutputs = append(vpcOutputs, vpcOutput)
+		return nil
 	}
-	rtn["vpcInfo"] = vpcOutputs
-	apiInforOutput.VpcInfo = vpcOutputs
+	err = json.Unmarshal(resp, subnets)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+
+	apiInforOutput.VpcInfo = vpcs.Vpcs
+	apiInforOutput.SubnetInfo = subnets.Subnets
 	//2.Retrieve sshkey info
 	uri = "/v2/" + state.ProjectID + "/os-keypairs"
 	keypairs := &KeypairList{}
@@ -339,12 +303,7 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 		return nil
 	}
-	var sshkeyNameOutput []string
-	for _, keypair := range keypairs.Keypairs {
-		sshkeyNameOutput = append(sshkeyNameOutput, keypair.Keypair.Name)
-	}
-	rtn["sshkeyName"] = sshkeyNameOutput
-	apiInforOutput.SshKeyName = sshkeyNameOutput
+	apiInforOutput.SshKeyName = keypairs.Keypairs
 	//3.Retrieve node flavor
 	uri = "/v1/" + state.ProjectID + "/cloudservers/flavors"
 	flavors := &FlavorList{}
@@ -364,17 +323,7 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 		return nil
 	}
-	var nodeFlavorOutputs []businessv3.NodeFlavor
-	for _, flavor := range flavors.Flavors {
-		nodeFlavorOutput := businessv3.NodeFlavor{
-			Name: flavor.Name,
-			Vcpus: flavor.Vcpus,
-			Ram: flavor.Ram,
-		}
-		nodeFlavorOutputs = append(nodeFlavorOutputs, nodeFlavorOutput)
-	}
-	rtn["nodeFlavor"] = nodeFlavorOutputs
-	apiInforOutput.NodeFlavor = nodeFlavorOutputs
+	apiInforOutput.NodeFlavor = flavors.Flavors
 	//4.Retrieve available zone
 	uri = "/v2/" + state.ProjectID + "/os-availability-zone"
 	azs := &AvailabilityZoneInfoList{}
@@ -394,20 +343,31 @@ func (h *ApiHandler) retrieveInfo(apiContext *types.APIContext) (error) {
 
 		return nil
 	}
-	var availableZoneOutputs []businessv3.AvailableZone
-	for _, az := range azs.AvailabilityZoneInfo {
-		availableZoneOutput := businessv3.AvailableZone{
-			ZoneName: az.ZoneName,
-			ZoneState: az.ZoneState.Available,
-		}
-		availableZoneOutputs = append(availableZoneOutputs, availableZoneOutput)
+	apiInforOutput.AvailableZone = azs.AvailabilityZoneInfo
+	//5.Retrieve highway subnet info
+	uri = "/v2.0/networks?provider:network_type=geneve&tenant_id=" + state.ProjectID
+	highwaySubnets := &HighwaySubnetList{}
+	resp, _, err = cceHTTPRequest(state, uri, http.MethodGet, common.ServiceVPC, nil)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
 	}
-	rtn["availableZone"] = availableZoneOutputs
-	logrus.Infof("%v, %v, %v, %v", vpcOutputs, sshkeyNameOutput,nodeFlavorOutputs, availableZoneOutputs)
-	apiInforOutput.AvailableZone = availableZoneOutputs
+	err = json.Unmarshal(resp, highwaySubnets)
+	if err != nil {
+		rtn["message"] = err.Error()
+		status = http.StatusBadRequest
+		apiContext.WriteResponse(status, rtn)
+
+		return nil
+	}
+	apiInforOutput.HighwaySubnet = highwaySubnets.HighwaySubnet
+
 	rtnOk := map[string]interface{}{}
 	convert.ToObj(apiInforOutput, &rtnOk)
-	logrus.Infof("apiInfoOutput: %v, rtnOk: %v", *apiInforOutput, rtnOk)
+	rtnOk["type"] = "huaweiCloudApiInformationOutput"
 	apiContext.WriteResponse(status, rtnOk)
 
 	return nil
