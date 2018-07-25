@@ -49,20 +49,20 @@ func addRoles(management *config.ManagementContext) (string, error) {
 		addRule().apiGroups("management.cattle.io").resources("clusteralerts").verbs("get", "list", "watch").
 		addRule().apiGroups("management.cattle.io").resources("notifiers").verbs("get", "list", "watch")
 
-	rb.addRoleTemplate("Create Clusters", "clusters-create", "business", true, false, false).
-		addRule().apiGroups("management.cattle.io").resources("clusters").verbs("create")
-
-	rb.addRoleTemplate("View All Clusters", "cluster-view", "business", true, false, false).
-		addRule().apiGroups("management.cattle.io").resources("clusterroletemplatebindings").verbs("get", "list", "watch").
-		addRule().apiGroups("management.cattle.io").resources("nodes", "nodepools").verbs("get", "list", "watch").
-		addRule().apiGroups("*").resources("nodes").verbs("get", "list", "watch").
-		addRule().apiGroups("*").resources("persistentvolumes").verbs("get", "list", "watch").
-		addRule().apiGroups("*").resources("storageclasses").verbs("get", "list", "watch").
-		addRule().apiGroups("management.cattle.io").resources("clusterevents").verbs("get", "list", "watch").
-		addRule().apiGroups("management.cattle.io").resources("clusterpipelines").verbs("get", "list", "watch").
-		addRule().apiGroups("management.cattle.io").resources("clusterloggings").verbs("get", "list", "watch").
-		addRule().apiGroups("management.cattle.io").resources("clusteralerts").verbs("get", "list", "watch").
-		addRule().apiGroups("management.cattle.io").resources("notifiers").verbs("get", "list", "watch")
+	//rb.addRoleTemplate("Create Clusters", "clusters-create", "business", true, false, false).
+	//	addRule().apiGroups("management.cattle.io").resources("clusters").verbs("create")
+	//
+	//rb.addRoleTemplate("View All Clusters", "cluster-view", "business", true, false, false).
+	//	addRule().apiGroups("management.cattle.io").resources("clusterroletemplatebindings").verbs("get", "list", "watch").
+	//	addRule().apiGroups("management.cattle.io").resources("nodes", "nodepools").verbs("get", "list", "watch").
+	//	addRule().apiGroups("*").resources("nodes").verbs("get", "list", "watch").
+	//	addRule().apiGroups("*").resources("persistentvolumes").verbs("get", "list", "watch").
+	//	addRule().apiGroups("*").resources("storageclasses").verbs("get", "list", "watch").
+	//	addRule().apiGroups("management.cattle.io").resources("clusterevents").verbs("get", "list", "watch").
+	//	addRule().apiGroups("management.cattle.io").resources("clusterpipelines").verbs("get", "list", "watch").
+	//	addRule().apiGroups("management.cattle.io").resources("clusterloggings").verbs("get", "list", "watch").
+	//	addRule().apiGroups("management.cattle.io").resources("clusteralerts").verbs("get", "list", "watch").
+	//	addRule().apiGroups("management.cattle.io").resources("notifiers").verbs("get", "list", "watch")
 
 	// Not specific to project or cluster
 	// TODO When clusterevents has value, consider adding this back in

@@ -61,7 +61,7 @@ func (h authHeaderHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 
 func (h checkoutHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	err := h.checkout.Checkout(req)
-	if err != nil || !authed {
+	if err != nil{
 		util.ReturnHTTPError(rw, req, 401, err.Error())
 		return
 	}
