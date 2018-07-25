@@ -5,7 +5,7 @@ import (
 	//"github.com/rancher/norman/leader"
 	"github.com/rancher/rancher/pkg/auth/providers/common"
 	"github.com/rancher/rancher/pkg/auth/tokens"
-	managementController "github.com/rancher/rancher/pkg/controllers/management"
+	//managementController "github.com/rancher/rancher/pkg/controllers/management"
 	"github.com/rancher/rancher/pkg/k8scheck"
 	"github.com/rancher/rancher/server"
 	"github.com/rancher/types/apis/management.cattle.io/v3"
@@ -87,7 +87,7 @@ func Run(ctx context.Context, kubeConfig rest.Config, cfg *Config) error {
 			panic(err)
 		}
 
-		managementController.Register(ctx, management)
+		//managementController.Register(ctx, management)
 		if err := management.Start(ctx); err != nil {
 			panic(err)
 		}

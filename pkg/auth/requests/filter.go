@@ -8,6 +8,7 @@ import (
 	"github.com/rancher/rancher/pkg/auth/util"
 	"github.com/rancher/types/config"
 	"github.com/sirupsen/logrus"
+	"encoding/json"
 )
 
 func NewAuthenticationFilter(ctx context.Context, managementContext *config.ScaledContext, next http.Handler) (http.Handler, error) {
@@ -62,18 +63,14 @@ func (h authHeaderHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 func (h checkoutHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	err := h.checkout.Checkout(req)
 	if err != nil{
-		util.ReturnHTTPError(rw, req, 401, err.Error())
+		rw.WriteHeader(http.StatusBadRequest)
+		e := map[string]interface{}{
+			"code": http.StatusBadRequest,
+			"message": err.Error(),
+		}
+		responseBody, _ := json.Marshal(e)
+		rw.Write(responseBody)
 		return
 	}
-
-	logrus.Debugf("Impersonating user %v, groups %v", user, groups)
-
-	req.Header.Set("Impersonate-User", user)
-
-	req.Header.Del("Impersonate-Group")
-	for _, group := range groups {
-		req.Header.Add("Impersonate-Group", group)
-	}
-
-	h.next.ServeHTTP(rw, req)
+	rw.WriteHeader(http.StatusOK)
 }

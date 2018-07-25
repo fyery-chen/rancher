@@ -173,10 +173,8 @@ func (a *tokenAuthenticator)Checkout(req *http.Request) (error) {
 	logrus.Infof("Business name: %s input name: %s", business.Name, input.BusinessName)
 	requestedHosts += input.NodeCount
 	if requestedHosts > business.Spec.NodeCount {
-		rtn["message"] = "Checkout failed, there is no enough quotas"
-		status = http.StatusBadRequest
+		return fmt.Errorf("there is no enough quota")
 	}
-	apiContext.WriteResponse(status, rtn)
 
 	return nil
 }
