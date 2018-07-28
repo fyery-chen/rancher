@@ -5,7 +5,11 @@ const (
 	HuaweiCloudContainerEngineCongfigFieldAccessKey             = "accessKey"
 	HuaweiCloudContainerEngineCongfigFieldAuthenticatingProxyCa = "authenticatingProxyCa"
 	HuaweiCloudContainerEngineCongfigFieldAvailableZone         = "availableZone"
+	HuaweiCloudContainerEngineCongfigFieldBMSIsAutoRenew        = "bmsIsAutoRenew"
+	HuaweiCloudContainerEngineCongfigFieldBMSPeriodNum          = "bmsPeriodNum"
+	HuaweiCloudContainerEngineCongfigFieldBMSPeriodType         = "bmsPeriodType"
 	HuaweiCloudContainerEngineCongfigFieldBillingMode           = "billingMode"
+	HuaweiCloudContainerEngineCongfigFieldClusterBillingMode    = "clusterBillingMode"
 	HuaweiCloudContainerEngineCongfigFieldClusterEipId          = "clusterEipId"
 	HuaweiCloudContainerEngineCongfigFieldClusterFlavor         = "clusterFlavor"
 	HuaweiCloudContainerEngineCongfigFieldClusterType           = "clusterType"
@@ -42,7 +46,11 @@ type HuaweiCloudContainerEngineCongfig struct {
 	AccessKey             string            `json:"accessKey,omitempty" yaml:"accessKey,omitempty"`
 	AuthenticatingProxyCa string            `json:"authenticatingProxyCa,omitempty" yaml:"authenticatingProxyCa,omitempty"`
 	AvailableZone         string            `json:"availableZone,omitempty" yaml:"availableZone,omitempty"`
+	BMSIsAutoRenew        string            `json:"bmsIsAutoRenew,omitempty" yaml:"bmsIsAutoRenew,omitempty"`
+	BMSPeriodNum          int64             `json:"bmsPeriodNum,omitempty" yaml:"bmsPeriodNum,omitempty"`
+	BMSPeriodType         string            `json:"bmsPeriodType,omitempty" yaml:"bmsPeriodType,omitempty"`
 	BillingMode           int64             `json:"billingMode,omitempty" yaml:"billingMode,omitempty"`
+	ClusterBillingMode    int64             `json:"clusterBillingMode,omitempty" yaml:"clusterBillingMode,omitempty"`
 	ClusterEipId          string            `json:"clusterEipId,omitempty" yaml:"clusterEipId,omitempty"`
 	ClusterFlavor         string            `json:"clusterFlavor,omitempty" yaml:"clusterFlavor,omitempty"`
 	ClusterType           string            `json:"clusterType,omitempty" yaml:"clusterType,omitempty"`

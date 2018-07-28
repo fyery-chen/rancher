@@ -40,6 +40,7 @@ type state struct {
 	ClusterType   	string
 	ClusterFlavor 	string
 	ClusterVersion 	string
+	ClusterBillingMode int64
 	ClusterLabels   map[string]string
 	ClientID      	string
 	ClientSecret  	string
@@ -272,6 +273,7 @@ func getStateFromOptions(driverOptions *types.DriverOptions) (state, error) {
 	state.ClusterVersion = getValueFromDriverOptions(driverOptions, types.StringType, "master-version", "masterVersion").(string)
 	state.ClientID = getValueFromDriverOptions(driverOptions, types.StringType, "client-id", "accessKey").(string)
 	state.ClientSecret = getValueFromDriverOptions(driverOptions, types.StringType, "client-secret", "secretKey").(string)
+	state.ClusterBillingMode = getValueFromDriverOptions(driverOptions, types.IntType, "cluster-billing-mode", "clusterBillingMode").(int64)
 	state.VpcID = getValueFromDriverOptions(driverOptions, types.StringType, "vpc-id", "vpcId").(string)
 	state.SubnetID = getValueFromDriverOptions(driverOptions, types.StringType, "subnet-id", "subnetId").(string)
 	state.ContainerNetworkMode = getValueFromDriverOptions(driverOptions, types.StringType, "container-network-mode", "containerNetworkMode").(string)
@@ -292,6 +294,9 @@ func getStateFromOptions(driverOptions *types.DriverOptions) (state, error) {
 	state.NodeConfig.PublicIP.Eip.Bandwidth.ShareType = getValueFromDriverOptions(driverOptions, types.StringType, "eip-share-type", "eipShareType").(string)
 	state.NodeConfig.PublicIP.Eip.Bandwidth.ChargeMode = getValueFromDriverOptions(driverOptions, types.StringType, "eip-charge-mode", "eipChargeMode").(string)
 	state.NodeConfig.NodeOperationSystem = getValueFromDriverOptions(driverOptions, types.StringType, "node-operation-system", "nodeOperationSystem").(string)
+	state.NodeConfig.ExtendParam.BMSPeriodType = getValueFromDriverOptions(driverOptions, types.StringType, "bms-period-type", "bmsPeriodType").(string)
+	state.NodeConfig.ExtendParam.BMSPeriodNum = getValueFromDriverOptions(driverOptions, types.IntType, "bms-period-num", "bmsPeriodNum").(int64)
+	state.NodeConfig.ExtendParam.BMSIsAutoRenew = getValueFromDriverOptions(driverOptions, types.StringType, "bms-is-auto-renew", "bmsIsAutoRenew").(string)
 	state.AuthenticatingProxyCa = getValueFromDriverOptions(driverOptions, types.StringType, "authenticating-proxy-ca", "authenticatingProxyCa").(string)
 	state.ExternalServerEnabled = getValueFromDriverOptions(driverOptions, types.BoolType, "external-server-enabled", "externalServerEnabled").(bool)
 	state.ClusterEipId = getValueFromDriverOptions(driverOptions, types.StringType, "cluster-eip-id", "clusterEipId").(string)
@@ -489,11 +494,13 @@ func (d *Driver) cceHTTPRequest(state state, uri, method, serviceType string, ar
 	return body, statusCode, nil
 }
 
-func (d *Driver) addNode(ctx context.Context, options *types.DriverOptions, num int64)(error) {
+func (d *Driver) addNode(ctx context.Context, state state, num int64)(error) {
 	var nodeResp common.NodeInfo
-	state, err := getStateFromOptions(options)
-	if err != nil {
-		return fmt.Errorf("error parsing state: %v", err)
+	if isConsumerCloudMember == true {
+		err := d.preCheck(ctx, state)
+		if err != nil {
+			return fmt.Errorf("Quota check failed")
+		}
 	}
 
 	uri := "/api/v3/projects/" + state.ProjectID + "/clusters/" + state.ClusterID + "/nodes"
@@ -549,15 +556,11 @@ func (d *Driver) addNode(ctx context.Context, options *types.DriverOptions, num 
 	return nil
 }
 
-func (d *Driver) deleteNode(ctx context.Context, options *types.DriverOptions, num int64)(error) {
+func (d *Driver) deleteNode(ctx context.Context, state state, num int64)(error) {
 
 	logrus.Infof("Starting delete node...")
 
 	nodes := &common.NodeListInfo{
-	}
-	state, err := getStateFromOptions(options)
-	if err != nil {
-		return fmt.Errorf("error parsing state: %v", err)
 	}
 
 	uri := "/api/v3/projects/" + state.ProjectID + "/clusters/" + state.ClusterID + "/nodes"
@@ -637,7 +640,7 @@ func (d *Driver) preCheck(ctx context.Context, state state) error {
 
 	b, err := json.Marshal(e)
 
-	requestURL := "https://cattle-cce-service/v3-public"
+	requestURL := "https://cattle-cce-service/quotacheckout"
 	req, err := http.NewRequest(http.MethodPost, requestURL, bytes.NewReader(b))
 	if err != nil {
 		return err
@@ -787,6 +790,7 @@ func (d *Driver) Create(ctx context.Context, options *types.DriverOptions, _ *ty
 				Mode: state.ContainerNetworkMode,
 				Cidr: state.ContainerNetworkCidr,
 			},
+			BillingMode: state.ClusterBillingMode,
 			Authentication: common.Authentication{
 				Mode: "authenticating_proxy",
 				AuthenticatingProxy: common.AuthenticatingProxy{
@@ -858,6 +862,11 @@ func (d *Driver) Create(ctx context.Context, options *types.DriverOptions, _ *ty
 				Count:       state.NodeConfig.NodeCount,
 				BillingMode: state.NodeConfig.BillingMode,
 				OperationSystem: state.NodeConfig.NodeOperationSystem,
+				ExtendParam: common.ExtendParam{
+					BMSPeriodType: state.NodeConfig.ExtendParam.BMSPeriodType,
+					BMSPeriodNum: state.NodeConfig.ExtendParam.BMSPeriodNum,
+					BMSIsAutoRenew: state.NodeConfig.ExtendParam.BMSIsAutoRenew,
+				},
 			},
 		}
 
@@ -1093,13 +1102,13 @@ func (d *Driver) Update(ctx context.Context, info *types.ClusterInfo, opts *type
 
 	if newState.NodeConfig.NodeCount > state.NodeConfig.NodeCount {
 		addNodeCount := newState.NodeConfig.NodeCount - state.NodeConfig.NodeCount
-		err = d.addNode(ctx, opts, addNodeCount)
+		err = d.addNode(ctx, newState, addNodeCount)
 		if err != nil {
 			return nil, fmt.Errorf("error adding cluster: %v", err)
 		}
 	} else if newState.NodeConfig.NodeCount < state.NodeConfig.NodeCount {
 		deleteNodeCount := state.NodeConfig.NodeCount - newState.NodeConfig.NodeCount
-		err = d.deleteNode(ctx, opts, deleteNodeCount)
+		err = d.deleteNode(ctx, newState, deleteNodeCount)
 		if err != nil {
 			return nil, fmt.Errorf("error deleting cluster: %v", err)
 		}

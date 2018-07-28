@@ -177,6 +177,8 @@ type HuaweiCloudContainerEngineCongfig struct {
 	ClusterType string `json:"clusterType,omitempty" norman:"required"`
 	// The cluster flavor
 	ClusterFlavor string `json:"clusterFlavor,omitempty" norman:"required"`
+	// The billing mode of cluster, default 0
+	ClusterBillingMode int64 `json:"clusterBillingMode,omitempty"`
 	// The cluster version, k8s version
 	MasterVersion string `json:"masterVersion,omitempty" norman:"required"`
 	// VpcId is the host network which the cluster use
@@ -229,6 +231,12 @@ type HuaweiCloudContainerEngineCongfig struct {
 	NodeOperationSystem string `json:"nodeOperationSystem,omitempty"`
 	//The CA for authenticating proxy
 	AuthenticatingProxyCa string `json:"authenticatingProxyCa,omitempty"`
+	//BMS period type for BareMetal Type, month or year
+	BMSPeriodType string `json:"bmsPeriodType,omitempty"`
+	//BMS period num for BareMetal, 1-9 for month and 1 for year
+	BMSPeriodNum int64 `json:"bmsPeriodNum,omitempty"`
+	//If enable auto renew if BillingMode is 2, false or true
+	BMSIsAutoRenew string `json:"bmsIsAutoRenew,omitempty"`
 	// The map of Kubernetes labels (key/value pairs) to be applied to each node
 	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
 }
