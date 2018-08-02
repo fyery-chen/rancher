@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 type Driver struct {
@@ -62,6 +63,7 @@ type state struct {
 const (
 	retries = 5
 	pollInterval = 30
+	defaultNamespace = "cattle-system"
 )
 
 var isConsumerCloudMember = false
@@ -111,6 +113,11 @@ func (d *Driver) GetDriverCreateOptions(ctx context.Context) (*types.DriverFlags
 		Usage: "The cluster flavor",
 		Value: "cce.s2.small",
 	}
+	driverFlag.Options["cluster-billing-mode"] = &types.Flag{
+		Type:  types.IntType,
+		Usage: "The bill mode of the cluster",
+		Value: "0",
+	}
 	driverFlag.Options["description"] = &types.Flag{
 		Type:  types.StringType,
 		Usage: "An optional description of this cluster",
@@ -151,7 +158,6 @@ func (d *Driver) GetDriverCreateOptions(ctx context.Context) (*types.DriverFlags
 		Type:  types.StringSliceType,
 		Usage: "The map of Kubernetes labels (key/value pairs) to be applied to cluster",
 	}
-
 	driverFlag.Options["node-flavor"] = &types.Flag{
 		Type:  types.StringType,
 		Usage: "The node flavor",
@@ -198,6 +204,22 @@ func (d *Driver) GetDriverCreateOptions(ctx context.Context) (*types.DriverFlags
 	driverFlag.Options["node-operation-system"] = &types.Flag{
 		Type:  types.StringType,
 		Usage: "The operation system of nodes",
+		Value: "EulerOS 2.2",
+	}
+	driverFlag.Options["bms-period-type"] = &types.Flag{
+		Type:  types.StringType,
+		Usage: "The period type",
+		Value: "month",
+	}
+	driverFlag.Options["bms-period-num"] = &types.Flag{
+		Type:  types.IntType,
+		Usage: "The number of period",
+		Value: "1",
+	}
+	driverFlag.Options["bms-is-auto-renew"] = &types.Flag{
+		Type:  types.StringType,
+		Usage: "If the period is auto renew",
+		Value: "false",
 	}
 	driverFlag.Options["external-server-enabled"] = &types.Flag{
 		Type:  types.BoolType,
@@ -311,8 +333,12 @@ func getStateFromOptions(driverOptions *types.DriverOptions) (state, error) {
 		if err != nil {
 			return state, fmt.Errorf("error creating clientset: %v", err)
 		}
+		namespace := os.Getenv("NAMESPACE")
+		if namespace == "" {
+			namespace = defaultNamespace
+		}
 
-		accountSecret, err := clientset.CoreV1().Secrets("consumer-cloud").Get("huaweicloud-cce-account", v1.GetOptions{})
+		accountSecret, err := clientset.CoreV1().Secrets(namespace).Get("huaweicloud-cce-account", v1.GetOptions{})
 		if err != nil {
 			return state, fmt.Errorf("error creating service account: %v", err)
 		}
@@ -505,42 +531,51 @@ func (d *Driver) addNode(ctx context.Context, state state, num int64)(error) {
 
 	uri := "/api/v3/projects/" + state.ProjectID + "/clusters/" + state.ClusterID + "/nodes"
 	nodesReq := &common.NodeInfo{
-		Kind: "Node",
+		Kind:       "Node",
 		ApiVersion: "v3",
 		MetaData: common.NodeMetaInfo{
 			Name: state.ClusterName,
+			Labels: state.NodeConfig.NodeLabels,
 		},
 		Spec: common.NodeSpecInfo{
-			Flavor: state.NodeConfig.NodeFlavor,
+			Flavor:        state.NodeConfig.NodeFlavor,
 			AvailableZone: state.NodeConfig.AvailableZone,
 			Login: common.NodeLogin{
 				SSHKey: state.NodeConfig.SSHName,
 			},
 			RootVolume: common.NodeVolume{
-				Size: state.NodeConfig.RootVolumeSize,
+				Size:       state.NodeConfig.RootVolumeSize,
 				VolumeType: state.NodeConfig.RootVolumeType,
 			},
+			DataVolumes: []common.NodeVolume{
+				{
+					Size:       state.NodeConfig.DataVolumeSize,
+					VolumeType: state.NodeConfig.DataVolumeType,
+				},
+			},
 			PublicIP: common.PublicIP{
-				Ids: state.NodeConfig.PublicIP.Ids,
+				Ids:   state.NodeConfig.PublicIP.Ids,
 				Count: state.NodeConfig.PublicIP.Count,
 				Eip: common.Eip{
 					Iptype: state.NodeConfig.PublicIP.Eip.Iptype,
 					Bandwidth: common.Bandwidth{
 						ChargeMode: state.NodeConfig.PublicIP.Eip.Bandwidth.ChargeMode,
-						Size: state.NodeConfig.PublicIP.Eip.Bandwidth.Size,
-						ShareType: state.NodeConfig.PublicIP.Eip.Bandwidth.ShareType,
+						Size:       state.NodeConfig.PublicIP.Eip.Bandwidth.Size,
+						ShareType:  state.NodeConfig.PublicIP.Eip.Bandwidth.ShareType,
 					},
 				},
 			},
-			Count: num,
+			Count:       num,
 			BillingMode: state.NodeConfig.BillingMode,
 			OperationSystem: state.NodeConfig.NodeOperationSystem,
+			ExtendParam: common.ExtendParam{
+				BMSPeriodType: state.NodeConfig.ExtendParam.BMSPeriodType,
+				BMSPeriodNum: state.NodeConfig.ExtendParam.BMSPeriodNum,
+				BMSIsAutoRenew: state.NodeConfig.ExtendParam.BMSIsAutoRenew,
+			},
 		},
 	}
-	var dataVolume common.NodeVolume
-	dataVolume.Size = state.NodeConfig.DataVolumeSize
-	dataVolume.VolumeType = state.NodeConfig.DataVolumeType
-	nodesReq.Spec.DataVolumes = append(nodesReq.Spec.DataVolumes, dataVolume)
+
 	resp, _, err := d.cceHTTPRequest(state, uri, http.MethodPost, common.ServiceCCE, nodesReq)
 	if err != nil {
 		return fmt.Errorf("error creating node: %v", err)
@@ -549,6 +584,11 @@ func (d *Driver) addNode(ctx context.Context, state state, num int64)(error) {
 	if err := json.Unmarshal(resp, &nodeResp); err != nil {
 		logrus.Debugf("creating node json unmarshal error is: %v", err)
 		return err
+	}
+
+	_, err = d.waitForReady(state, "node", "create")
+	if err != nil {
+		return  err
 	}
 
 	logrus.Infof("Starting add node...")
