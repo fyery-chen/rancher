@@ -912,6 +912,21 @@ func (d *Driver) Create(ctx context.Context, options *types.DriverOptions, _ *ty
 
 		resp, _, err = d.cceHTTPRequest(state, uri, http.MethodPost, common.ServiceCCE, nodesReq)
 		if err != nil {
+			//try again
+			resp, _, err = d.cceHTTPRequest(state, uri, http.MethodPost, common.ServiceCCE, nodesReq)
+			if err != nil {
+				//delete the cluster
+				uri = "/api/v3/projects/" + state.ProjectID + "/clusters/" + state.ClusterID
+				_, _, err = d.cceHTTPRequest(state, uri, http.MethodDelete, common.ServiceCCE, nil)
+				if err != nil {
+					return nil, fmt.Errorf("error deleting cluster: %v", err)
+				}
+				//wait to be deleted
+				_, err = d.waitForReady(state, "cce", "delete")
+				if err != nil {
+					return nil, err
+				}
+			}
 			return nil, fmt.Errorf("error creating node: %v", err)
 		}
 
@@ -971,9 +986,22 @@ func (d *Driver) waitForReady(state state, serviceType string, opt string) (inte
 
 				status = cluster.Status.Phase
 			}
+			return cluster, nil
 		}
+		if opt == "delete" {
+			for statusCode != 404 {
+				time.Sleep(5 * time.Second)
+				logrus.Infof("Waiting for cluster to finish deleting")
+				uri := "/api/v3/projects/" + state.ProjectID + "/clusters/" + state.ClusterID
 
-		return cluster, nil
+				_, code, _ := d.cceHTTPRequest(state, uri, http.MethodGet, common.ServiceCCE, nil)
+				if code == 404 {
+					logrus.Info("Delete subnet successfully")
+				}
+				statusCode = code
+			}
+			return nil, nil
+		}
 	case "node":
 		nodes := &common.NodeListInfo{
 		}
