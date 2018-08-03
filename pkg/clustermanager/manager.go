@@ -197,6 +197,7 @@ func (m *Manager) toRESTConfig(cluster *v3.Cluster) (*rest.Config, error) {
 		Prefix:      u.Path,
 		BearerToken: cluster.Status.ServiceAccountToken,
 		TLSClientConfig: rest.TLSClientConfig{
+			ServerName: u.Hostname(),
 			CAData: caBytes,
 		},
 		Timeout: 30 * time.Second,

@@ -522,7 +522,7 @@ func (d *Driver) cceHTTPRequest(state state, uri, method, serviceType string, ar
 
 func (d *Driver) addNode(ctx context.Context, state state, num int64)(error) {
 	var nodeResp common.NodeInfo
-	if isConsumerCloudMember == true {
+	if isConsumerCloudMember == true && state.ClusterLabels["business"] != ""{
 		err := d.preCheck(ctx, state)
 		if err != nil {
 			return fmt.Errorf("Quota check failed")
@@ -739,7 +739,7 @@ func (d *Driver) Create(ctx context.Context, options *types.DriverOptions, _ *ty
 	if err != nil {
 		return nil, fmt.Errorf("error parsing state: %v", err)
 	}
-	if isConsumerCloudMember == true {
+	if isConsumerCloudMember == true && state.ClusterLabels["business"] != "" {
 		err = d.preCheck(ctx, state)
 		if err != nil {
 			return nil, fmt.Errorf("Quota check failed")
