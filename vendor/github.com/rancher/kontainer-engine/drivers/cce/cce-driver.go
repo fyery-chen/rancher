@@ -1167,6 +1167,7 @@ func (d *Driver) Update(ctx context.Context, info *types.ClusterInfo, opts *type
 	if err != nil {
 		return nil, err
 	}
+	newState.ClusterID = state.ClusterID
 
 	if newState.NodeConfig.NodeCount > state.NodeConfig.NodeCount {
 		addNodeCount := newState.NodeConfig.NodeCount - state.NodeConfig.NodeCount
