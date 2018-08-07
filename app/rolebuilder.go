@@ -185,15 +185,15 @@ func (rb *roleBuilder) reconcile(build buildFnc, gatherExisting gatherExistingFn
 		return err
 	}
 
-	for name := range existing {
-		if _, ok := builtRoles[name]; !ok {
-			logrus.Infof("Remvoing %v", name)
-			if err := client.Delete(name, &v1.DeleteOptions{}); err != nil {
-				return errors.Wrapf(err, "couldn't delete %v", name)
-			}
-			delete(existing, name)
-		}
-	}
+	//for name := range existing {
+	//	if _, ok := builtRoles[name]; !ok {
+	//		logrus.Infof("Remvoing %v", name)
+	//		if err := client.Delete(name, &v1.DeleteOptions{}); err != nil {
+	//			return errors.Wrapf(err, "couldn't delete %v", name)
+	//		}
+	//		delete(existing, name)
+	//	}
+	//}
 
 	for name, gr := range builtRoles {
 		if existingCR, ok := existing[name]; ok {
