@@ -107,6 +107,11 @@ func Configure(ctx context.Context, mgmt *config.ScaledContext) {
 	providers[saml.KeyCloakName] = p
 	providersByType[client.KeyCloakConfigType] = p
 	providersByType[publicclient.KeyCloakProviderType] = p
+
+	p = saml.Configure(ctx, mgmt, userMGR, tokenMGR, saml.OkTAName)
+	providers[saml.OkTAName] = p
+	providersByType[client.OKTAConfigType] = p
+	providersByType[publicclient.OKTAProviderType] = p
 }
 
 func AuthenticateUser(input interface{}, providerName string) (v3.Principal, []v3.Principal, string, error) {
