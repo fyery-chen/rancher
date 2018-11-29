@@ -4,22 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"google.golang.org/api/compute/v1"
+	"net/http"
 )
 
-// NewGKEMachineTypesHandler creates a new GKEMachineTypesHandler
-func NewGKEMachineTypesHandler() *GKEMachineTypesHandler {
-	return &GKEMachineTypesHandler{}
+// NewGKENetworksHandler creates a new GKENetworksHandler
+func NewGKENetworksHandler() *GKENetworksHandler {
+	return &GKENetworksHandler{}
 }
 
-// GKEMachineTypesHandler lists available machine types in GKE
-type GKEMachineTypesHandler struct {
-	Field string
+// GKENetworksHandler lists available networks in GKE
+type GKENetworksHandler struct {
 }
 
-func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+func (g *GKENetworksHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -56,7 +54,8 @@ func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http
 		return
 	}
 
-	result, err := client.MachineTypes.List(body.ProjectID, body.Zone).Do()
+	result, err := client.Networks.List(body.ProjectID).Do()
+
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		handleErr(writer, err)
@@ -74,7 +73,7 @@ func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http
 	writer.Write(serialized)
 }
 
-func (g *GKEMachineTypesHandler) getServiceClient(ctx context.Context, credentialContent string) (*compute.Service, error) {
+func (g *GKENetworksHandler) getServiceClient(ctx context.Context, credentialContent string) (*compute.Service, error) {
 	client, err := getOAuthClient(ctx, credentialContent)
 
 	if err != nil {

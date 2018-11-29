@@ -4,22 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"google.golang.org/api/compute/v1"
+	"net/http"
 )
 
-// NewGKEMachineTypesHandler creates a new GKEMachineTypesHandler
-func NewGKEMachineTypesHandler() *GKEMachineTypesHandler {
-	return &GKEMachineTypesHandler{}
+// NewGKESubnetworksHandler creates a new GKESubnetworksHandler
+func NewGKESubnetworksHandler() *GKENetworksHandler {
+	return &GKENetworksHandler{}
 }
 
-// GKEMachineTypesHandler lists available machine types in GKE
-type GKEMachineTypesHandler struct {
-	Field string
+// GKESubnetworksHandler lists available networks in GKE
+type GKESubnetworksHandler struct {
 }
 
-func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+type subnetworkCapabilitiesRequestBody struct {
+	capabilitiesRequestBody
+
+	Region         string `json:"region"`
+	SubnetworkName string `json:"subnetworkName"`
+}
+
+func (g *GKESubnetworksHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -27,7 +32,7 @@ func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http
 
 	writer.Header().Set("Content-Type", "application/json")
 
-	var body zoneCapabilitiesRequestBody
+	var body subnetworkCapabilitiesRequestBody
 	err := extractRequestBody(writer, req, &body)
 
 	if err != nil {
@@ -55,8 +60,8 @@ func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http
 		handleErr(writer, err)
 		return
 	}
+	result, err := client.Subnetworks.Get(body.ProjectID, body.Region, body.SubnetworkName).Do()
 
-	result, err := client.MachineTypes.List(body.ProjectID, body.Zone).Do()
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		handleErr(writer, err)
@@ -74,7 +79,7 @@ func (g *GKEMachineTypesHandler) ServeHTTP(writer http.ResponseWriter, req *http
 	writer.Write(serialized)
 }
 
-func (g *GKEMachineTypesHandler) getServiceClient(ctx context.Context, credentialContent string) (*compute.Service, error) {
+func (g *GKESubnetworksHandler) getServiceClient(ctx context.Context, credentialContent string) (*compute.Service, error) {
 	client, err := getOAuthClient(ctx, credentialContent)
 
 	if err != nil {
