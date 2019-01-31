@@ -501,11 +501,7 @@ func getStateFromOpts(driverOptions *types.DriverOptions) (state, error) {
 	d.NodePool.Name = "default-0"
 
 	// Configuration of MasterAuth
-	d.MasterAuth.Username = options.GetValueFromDriverOptions(driverOptions, types.StringType, "master-auth-username", "masterAuthUsername").(string)
-	if d.MasterAuth.Username == "" {
-		d.MasterAuth.Username = "admin"
-	}
-	d.MasterAuth.Password = options.GetValueFromDriverOptions(driverOptions, types.StringType, "master-auth-password", "masterAuthPassword").(string)
+	d.MasterAuth.Username = "admin"
 	d.MasterAuth.ClientCertificateConfig.IssueClientCertificate = options.GetValueFromDriverOptions(driverOptions, types.BoolType, "issue-client-certificate", "issueClientCertificate").(bool)
 
 	// Configuration of MasterAuthorizedNetworksConfig
