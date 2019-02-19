@@ -114,7 +114,7 @@ func (d *BaseDriver) stage() error {
 		return err
 	}
 
-	tempFile, err := ioutil.TempFile("", "machine-driver")
+	tempFile, err := ioutil.TempFile("", "kontainer-machine-driver")
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func isElf(input string) bool {
 }
 
 func (d *BaseDriver) copyBinary(cacheFile, input string) (string, error) {
-	temp, err := ioutil.TempDir("", "machine-driver-extract")
+	temp, err := ioutil.TempDir("", "kontainer-machine-driver-extract")
 	if err != nil {
 		return "", err
 	}
@@ -230,6 +230,9 @@ func (d *BaseDriver) copyBinary(cacheFile, input string) (string, error) {
 	}))
 
 	if file == "" {
+		if strings.Contains(d.DriverName, "kontainer") {
+			return "", fmt.Errorf("failed to find kontainer driver in archive. There must be a file of form kontainer-engine-driver*")
+		}
 		return "", fmt.Errorf("failed to find machine driver in archive. There must be a file of form docker-machine-driver*")
 	}
 
@@ -321,6 +324,9 @@ func (d *BaseDriver) cacheFile() string {
 		base = "./management-state"
 	}
 
+	if strings.Contains(d.DriverName, "kontainer") {
+		return path.Join(base, "kontainer-drivers", key)
+	}
 	return path.Join(base, "machine-drivers", key)
 }
 
