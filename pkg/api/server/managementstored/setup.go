@@ -28,6 +28,7 @@ import (
 	"github.com/rancher/rancher/pkg/api/customization/podsecuritypolicytemplate"
 	projectStore "github.com/rancher/rancher/pkg/api/customization/project"
 	projectaction "github.com/rancher/rancher/pkg/api/customization/project"
+	"github.com/rancher/rancher/pkg/api/customization/registry"
 	"github.com/rancher/rancher/pkg/api/customization/roletemplate"
 	"github.com/rancher/rancher/pkg/api/customization/roletemplatebinding"
 	"github.com/rancher/rancher/pkg/api/customization/setting"
@@ -116,7 +117,10 @@ func Setup(ctx context.Context, apiContext *config.ScaledContext, clusterManager
 		client.UserAttributeType,
 		client.UserType,
 		client.GlobalDNSType,
-		client.GlobalDNSProviderType)
+		client.GlobalDNSProviderType,
+		client.GlobalRegistryType,
+		client.ClusterRegistryType,
+		client.ProjectRegistryType)
 
 	factory.BatchCreateCRDs(ctx, config.ManagementStorageContext, schemas, &projectschema.Version,
 		projectclient.AppType,
@@ -158,6 +162,7 @@ func Setup(ctx context.Context, apiContext *config.ScaledContext, clusterManager
 	GlobalDNSProviders(schemas, apiContext)
 	Monitor(schemas, apiContext, clusterManager)
 	KontainerDriver(schemas, apiContext)
+	Registry(schemas, apiContext)
 
 	if err := NodeTypes(schemas, apiContext); err != nil {
 		return err
@@ -467,6 +472,22 @@ func LoggingTypes(schemas *types.Schemas, management *config.ScaledContext, clus
 	schema.CollectionFormatter = logging.CollectionFormatter
 	schema.ActionHandler = handler.ActionHandler
 	schema.Validator = logging.ProjectLoggingValidator
+}
+
+func Registry(schemas *types.Schemas, management *config.ScaledContext) {
+	handler := registry.NewHandler(management)
+
+	schema := schemas.Schema(&managementschema.Version, client.ClusterRegistryType)
+	schema.Formatter = registry.Formatter
+	schema.ActionHandler = handler.ActionHandler
+
+	schema = schemas.Schema(&managementschema.Version, client.ProjectRegistryType)
+	schema.Formatter = registry.Formatter
+	schema.ActionHandler = handler.ActionHandler
+
+	schema = schemas.Schema(&managementschema.Version, client.GlobalRegistryType)
+	schema.Formatter = registry.Formatter
+	schema.ActionHandler = handler.ActionHandler
 }
 
 func Alert(schemas *types.Schemas, management *config.ScaledContext) {

@@ -42,11 +42,91 @@ var (
 		Init(etcdBackupTypes).
 		Init(monitorTypes).
 		Init(credTypes).
-		Init(mgmtSecretTypes)
+		Init(mgmtSecretTypes).
+		Init(registryTypes)
 
 	TokenSchemas = factory.Schemas(&Version).
 			Init(tokens)
 )
+
+func registryTypes(schema *types.Schemas) *types.Schemas {
+	return schema.
+		AddMapperForType(&Version, v3.GlobalRegistry{},
+			&m.Embed{Field: "status"},
+			m.DisplayName{}).
+		AddMapperForType(&Version, v3.ClusterRegistry{},
+			&m.Embed{Field: "status"},
+			m.DisplayName{}).
+		AddMapperForType(&Version, v3.ProjectRegistry{},
+			&m.Embed{Field: "status"},
+			m.DisplayName{}).
+		MustImport(&Version, v3.ClusterRegistryTestInput{}).
+		MustImport(&Version, v3.ProjectRegistryTestInput{}).
+		MustImport(&Version, v3.GlobalRegistryTestInput{}).
+		MustImport(&Version, v3.GetProjectInput{}).
+		MustImport(&Version, v3.GetRepositoryInput{}).
+		MustImport(&Version, v3.GetRepositoryTagsInput{}).
+		MustImport(&Version, v3.GetProjectOutput{}).
+		MustImport(&Version, v3.GetRepositoryOutput{}).
+		MustImport(&Version, v3.GetRepositoryTagsOutput{}).
+		MustImportAndCustomize(&Version, v3.ClusterRegistry{}, func(schema *types.Schema) {
+			schema.CollectionActions = map[string]types.Action{
+				"test": {
+					Input: "clusterRegistryTestInput",
+				},
+				"getProjects": {
+					Input:  "getProjectInput",
+					Output: "getProjectOutput",
+				},
+				"getRepositories": {
+					Input:  "getRepositoryInput",
+					Output: "getRepositoryOutput",
+				},
+				"getRepositoryTags": {
+					Input:  "getRepositoryTagsInput",
+					Output: "getRepositoryTagsOutput",
+				},
+			}
+		}).
+		MustImportAndCustomize(&Version, v3.ProjectRegistry{}, func(schema *types.Schema) {
+			schema.CollectionActions = map[string]types.Action{
+				"test": {
+					Input: "projectRegistryTestInput",
+				},
+				"getProjects": {
+					Input:  "getProjectInput",
+					Output: "getProjectOutput",
+				},
+				"getRepositories": {
+					Input:  "getRepositoryInput",
+					Output: "getRepositoryOutput",
+				},
+				"getRepositoryTags": {
+					Input:  "getRepositoryTagsInput",
+					Output: "getRepositoryTagsOutput",
+				},
+			}
+		}).
+		MustImportAndCustomize(&Version, v3.GlobalRegistry{}, func(schema *types.Schema) {
+			schema.CollectionActions = map[string]types.Action{
+				"test": {
+					Input: "globalRegistryTestInput",
+				},
+				"getProjects": {
+					Input:  "getProjectInput",
+					Output: "getProjectOutput",
+				},
+				"getRepositories": {
+					Input:  "getRepositoryInput",
+					Output: "getRepositoryOutput",
+				},
+				"getRepositoryTags": {
+					Input:  "getRepositoryTagsInput",
+					Output: "getRepositoryTagsOutput",
+				},
+			}
+		})
+}
 
 func rkeTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.AddMapperForType(&Version, v3.BaseService{}, m.Drop{Field: "image"})

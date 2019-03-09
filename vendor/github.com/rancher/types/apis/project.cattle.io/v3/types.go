@@ -31,10 +31,11 @@ type DockerCredential struct {
 type NamespacedDockerCredential DockerCredential
 
 type RegistryCredential struct {
-	Description string `json:"description"`
-	Username    string `json:"username"`
-	Password    string `json:"password" norman:"writeOnly"`
-	Auth        string `json:"auth" norman:"writeOnly"`
+	Description  string `json:"description"`
+	Username     string `json:"username"`
+	Password     string `json:"password" norman:"writeOnly"`
+	Auth         string `json:"auth" norman:"writeOnly"`
+	RegistryType string `json:"registryType"`
 }
 
 type Certificate struct {

@@ -75,6 +75,9 @@ type Interface interface {
 	ClusterMonitorGraphsGetter
 	ProjectMonitorGraphsGetter
 	CloudCredentialsGetter
+	ClusterRegistriesGetter
+	ProjectRegistriesGetter
+	GlobalRegistriesGetter
 }
 
 type Clients struct {
@@ -135,6 +138,9 @@ type Clients struct {
 	ClusterMonitorGraph                     ClusterMonitorGraphClient
 	ProjectMonitorGraph                     ProjectMonitorGraphClient
 	CloudCredential                         CloudCredentialClient
+	ClusterRegistry                         ClusterRegistryClient
+	ProjectRegistry                         ProjectRegistryClient
+	GlobalRegistry                          GlobalRegistryClient
 }
 
 type Client struct {
@@ -197,6 +203,9 @@ type Client struct {
 	clusterMonitorGraphControllers                     map[string]ClusterMonitorGraphController
 	projectMonitorGraphControllers                     map[string]ProjectMonitorGraphController
 	cloudCredentialControllers                         map[string]CloudCredentialController
+	clusterRegistryControllers                         map[string]ClusterRegistryController
+	projectRegistryControllers                         map[string]ProjectRegistryController
+	globalRegistryControllers                          map[string]GlobalRegistryController
 }
 
 func Factory(ctx context.Context, config rest.Config) (context.Context, controller.Starter, error) {
@@ -397,6 +406,15 @@ func NewClientsFromInterface(iface Interface) *Clients {
 		CloudCredential: &cloudCredentialClient2{
 			iface: iface.CloudCredentials(""),
 		},
+		ClusterRegistry: &clusterRegistryClient2{
+			iface: iface.ClusterRegistries(""),
+		},
+		ProjectRegistry: &projectRegistryClient2{
+			iface: iface.ProjectRegistries(""),
+		},
+		GlobalRegistry: &globalRegistryClient2{
+			iface: iface.GlobalRegistries(""),
+		},
 	}
 }
 
@@ -468,6 +486,9 @@ func NewForConfig(config rest.Config) (Interface, error) {
 		clusterMonitorGraphControllers:                     map[string]ClusterMonitorGraphController{},
 		projectMonitorGraphControllers:                     map[string]ProjectMonitorGraphController{},
 		cloudCredentialControllers:                         map[string]CloudCredentialController{},
+		clusterRegistryControllers:                         map[string]ClusterRegistryController{},
+		projectRegistryControllers:                         map[string]ProjectRegistryController{},
+		globalRegistryControllers:                          map[string]GlobalRegistryController{},
 	}, nil
 }
 
@@ -1192,6 +1213,45 @@ type CloudCredentialsGetter interface {
 func (c *Client) CloudCredentials(namespace string) CloudCredentialInterface {
 	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &CloudCredentialResource, CloudCredentialGroupVersionKind, cloudCredentialFactory{})
 	return &cloudCredentialClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type ClusterRegistriesGetter interface {
+	ClusterRegistries(namespace string) ClusterRegistryInterface
+}
+
+func (c *Client) ClusterRegistries(namespace string) ClusterRegistryInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &ClusterRegistryResource, ClusterRegistryGroupVersionKind, clusterRegistryFactory{})
+	return &clusterRegistryClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type ProjectRegistriesGetter interface {
+	ProjectRegistries(namespace string) ProjectRegistryInterface
+}
+
+func (c *Client) ProjectRegistries(namespace string) ProjectRegistryInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &ProjectRegistryResource, ProjectRegistryGroupVersionKind, projectRegistryFactory{})
+	return &projectRegistryClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type GlobalRegistriesGetter interface {
+	GlobalRegistries(namespace string) GlobalRegistryInterface
+}
+
+func (c *Client) GlobalRegistries(namespace string) GlobalRegistryInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &GlobalRegistryResource, GlobalRegistryGroupVersionKind, globalRegistryFactory{})
+	return &globalRegistryClient{
 		ns:           namespace,
 		client:       c,
 		objectClient: objectClient,
