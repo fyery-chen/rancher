@@ -10,5 +10,5 @@ const (
 type RepositoryTag struct {
 	Digest string `json:"digest,omitempty" yaml:"digest,omitempty"`
 	Name   string `json:"name,omitempty" yaml:"name,omitempty"`
-	Size   string `json:"size,omitempty" yaml:"size,omitempty"`
+	Size   int64  `json:"size,omitempty" yaml:"size,omitempty"`
 }

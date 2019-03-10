@@ -171,7 +171,7 @@ type GetRepositoryOutput struct {
 type RepositoryTag struct {
 	Digest string `json:"digest,omitempty"`
 	Name   string `json:"name,omitempty"`
-	Size   string `json:"size,omitempty"`
+	Size   int    `json:"size,omitempty"`
 }
 
 type GetRepositoryTagsOutput struct {
