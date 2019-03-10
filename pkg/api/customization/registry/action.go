@@ -148,6 +148,6 @@ func (h *APIHandler) ActionHandler(actionName string, action *types.Action, apiC
 }
 
 func Formatter(request *types.APIContext, resource *types.RawResource) {
-	resource.AddAction(request, "GetRepositories")
-	resource.AddAction(request, "GetRepositoryTags")
+	resource.AddAction(request, "getRepositories")
+	resource.AddAction(request, "getRepositoryTags")
 }
