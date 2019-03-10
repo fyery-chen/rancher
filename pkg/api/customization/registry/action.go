@@ -2,6 +2,7 @@ package registry
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/rancher/norman/types/convert"
 	mgmtv3 "github.com/rancher/types/apis/management.cattle.io/v3"
 	mgmtv3client "github.com/rancher/types/client/management/v3"
+	"github.com/sirupsen/logrus"
 
 	"github.com/rancher/rancher/pkg/registry/common"
 	"github.com/rancher/rancher/pkg/registry/harbor"
@@ -121,6 +123,19 @@ func (h *APIHandler) ActionHandler(actionName string, action *types.Action, apiC
 		var repositoryTags []mgmtv3.RepositoryTag
 		var repositoryTagsOutput mgmtv3.GetRepositoryTagsOutput
 		apiClientConfig.RequestType = common.Tag
+
+		bytes, err := ioutil.ReadAll(apiContext.Request.Body)
+		if err != nil {
+			logrus.Errorf("retrieve failed with error: %v", err)
+			return httperror.NewAPIError(httperror.InvalidBodyContent, "")
+		}
+
+		input := mgmtv3.GetRepositoryTagsInput{}
+		err = json.Unmarshal(bytes, &input)
+		if err != nil {
+			return err
+		}
+		apiClientConfig.RepositoryName = input.RepositoryName
 		requestClient, err := harbor.NewAPIClient(apiClientConfig)
 		if err != nil {
 			return err
