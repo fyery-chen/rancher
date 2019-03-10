@@ -66,13 +66,13 @@ type ProjectRegistryOperations interface {
 	ByID(id string) (*ProjectRegistry, error)
 	Delete(container *ProjectRegistry) error
 
-	CollectionActionGetProjects(resource *ProjectRegistryCollection, input *GetProjectInput) (*GetProjectOutput, error)
+	ActionGetProjects(resource *ProjectRegistry, input *GetProjectInput) (*GetProjectOutput, error)
 
-	CollectionActionGetRepositories(resource *ProjectRegistryCollection, input *GetRepositoryInput) (*GetRepositoryOutput, error)
+	ActionGetRepositories(resource *ProjectRegistry, input *GetRepositoryInput) (*GetRepositoryOutput, error)
 
-	CollectionActionGetRepositoryTags(resource *ProjectRegistryCollection, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error)
+	ActionGetRepositoryTags(resource *ProjectRegistry, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error)
 
-	CollectionActionTest(resource *ProjectRegistryCollection, input *ProjectRegistryTestInput) error
+	ActionTest(resource *ProjectRegistry, input *ProjectRegistryTestInput) error
 }
 
 func newProjectRegistryClient(apiClient *Client) *ProjectRegistryClient {
@@ -126,25 +126,25 @@ func (c *ProjectRegistryClient) Delete(container *ProjectRegistry) error {
 	return c.apiClient.Ops.DoResourceDelete(ProjectRegistryType, &container.Resource)
 }
 
-func (c *ProjectRegistryClient) CollectionActionGetProjects(resource *ProjectRegistryCollection, input *GetProjectInput) (*GetProjectOutput, error) {
+func (c *ProjectRegistryClient) ActionGetProjects(resource *ProjectRegistry, input *GetProjectInput) (*GetProjectOutput, error) {
 	resp := &GetProjectOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(ProjectRegistryType, "getProjects", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(ProjectRegistryType, "getProjects", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *ProjectRegistryClient) CollectionActionGetRepositories(resource *ProjectRegistryCollection, input *GetRepositoryInput) (*GetRepositoryOutput, error) {
+func (c *ProjectRegistryClient) ActionGetRepositories(resource *ProjectRegistry, input *GetRepositoryInput) (*GetRepositoryOutput, error) {
 	resp := &GetRepositoryOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(ProjectRegistryType, "getRepositories", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(ProjectRegistryType, "getRepositories", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *ProjectRegistryClient) CollectionActionGetRepositoryTags(resource *ProjectRegistryCollection, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error) {
+func (c *ProjectRegistryClient) ActionGetRepositoryTags(resource *ProjectRegistry, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error) {
 	resp := &GetRepositoryTagsOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(ProjectRegistryType, "getRepositoryTags", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(ProjectRegistryType, "getRepositoryTags", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *ProjectRegistryClient) CollectionActionTest(resource *ProjectRegistryCollection, input *ProjectRegistryTestInput) error {
-	err := c.apiClient.Ops.DoCollectionAction(ProjectRegistryType, "test", &resource.Collection, input, nil)
+func (c *ProjectRegistryClient) ActionTest(resource *ProjectRegistry, input *ProjectRegistryTestInput) error {
+	err := c.apiClient.Ops.DoAction(ProjectRegistryType, "test", &resource.Resource, input, nil)
 	return err
 }

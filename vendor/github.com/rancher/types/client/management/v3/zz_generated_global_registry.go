@@ -62,13 +62,13 @@ type GlobalRegistryOperations interface {
 	ByID(id string) (*GlobalRegistry, error)
 	Delete(container *GlobalRegistry) error
 
-	CollectionActionGetProjects(resource *GlobalRegistryCollection, input *GetProjectInput) (*GetProjectOutput, error)
+	ActionGetProjects(resource *GlobalRegistry, input *GetProjectInput) (*GetProjectOutput, error)
 
-	CollectionActionGetRepositories(resource *GlobalRegistryCollection, input *GetRepositoryInput) (*GetRepositoryOutput, error)
+	ActionGetRepositories(resource *GlobalRegistry, input *GetRepositoryInput) (*GetRepositoryOutput, error)
 
-	CollectionActionGetRepositoryTags(resource *GlobalRegistryCollection, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error)
+	ActionGetRepositoryTags(resource *GlobalRegistry, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error)
 
-	CollectionActionTest(resource *GlobalRegistryCollection, input *GlobalRegistryTestInput) error
+	ActionTest(resource *GlobalRegistry, input *GlobalRegistryTestInput) error
 }
 
 func newGlobalRegistryClient(apiClient *Client) *GlobalRegistryClient {
@@ -122,25 +122,25 @@ func (c *GlobalRegistryClient) Delete(container *GlobalRegistry) error {
 	return c.apiClient.Ops.DoResourceDelete(GlobalRegistryType, &container.Resource)
 }
 
-func (c *GlobalRegistryClient) CollectionActionGetProjects(resource *GlobalRegistryCollection, input *GetProjectInput) (*GetProjectOutput, error) {
+func (c *GlobalRegistryClient) ActionGetProjects(resource *GlobalRegistry, input *GetProjectInput) (*GetProjectOutput, error) {
 	resp := &GetProjectOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(GlobalRegistryType, "getProjects", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(GlobalRegistryType, "getProjects", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *GlobalRegistryClient) CollectionActionGetRepositories(resource *GlobalRegistryCollection, input *GetRepositoryInput) (*GetRepositoryOutput, error) {
+func (c *GlobalRegistryClient) ActionGetRepositories(resource *GlobalRegistry, input *GetRepositoryInput) (*GetRepositoryOutput, error) {
 	resp := &GetRepositoryOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(GlobalRegistryType, "getRepositories", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(GlobalRegistryType, "getRepositories", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *GlobalRegistryClient) CollectionActionGetRepositoryTags(resource *GlobalRegistryCollection, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error) {
+func (c *GlobalRegistryClient) ActionGetRepositoryTags(resource *GlobalRegistry, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error) {
 	resp := &GetRepositoryTagsOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(GlobalRegistryType, "getRepositoryTags", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(GlobalRegistryType, "getRepositoryTags", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *GlobalRegistryClient) CollectionActionTest(resource *GlobalRegistryCollection, input *GlobalRegistryTestInput) error {
-	err := c.apiClient.Ops.DoCollectionAction(GlobalRegistryType, "test", &resource.Collection, input, nil)
+func (c *GlobalRegistryClient) ActionTest(resource *GlobalRegistry, input *GlobalRegistryTestInput) error {
+	err := c.apiClient.Ops.DoAction(GlobalRegistryType, "test", &resource.Resource, input, nil)
 	return err
 }

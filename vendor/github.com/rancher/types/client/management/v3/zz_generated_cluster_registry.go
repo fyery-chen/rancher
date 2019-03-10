@@ -68,13 +68,13 @@ type ClusterRegistryOperations interface {
 	ByID(id string) (*ClusterRegistry, error)
 	Delete(container *ClusterRegistry) error
 
-	CollectionActionGetProjects(resource *ClusterRegistryCollection, input *GetProjectInput) (*GetProjectOutput, error)
+	ActionGetProjects(resource *ClusterRegistry, input *GetProjectInput) (*GetProjectOutput, error)
 
-	CollectionActionGetRepositories(resource *ClusterRegistryCollection, input *GetRepositoryInput) (*GetRepositoryOutput, error)
+	ActionGetRepositories(resource *ClusterRegistry, input *GetRepositoryInput) (*GetRepositoryOutput, error)
 
-	CollectionActionGetRepositoryTags(resource *ClusterRegistryCollection, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error)
+	ActionGetRepositoryTags(resource *ClusterRegistry, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error)
 
-	CollectionActionTest(resource *ClusterRegistryCollection, input *ClusterRegistryTestInput) error
+	ActionTest(resource *ClusterRegistry, input *ClusterRegistryTestInput) error
 }
 
 func newClusterRegistryClient(apiClient *Client) *ClusterRegistryClient {
@@ -128,25 +128,25 @@ func (c *ClusterRegistryClient) Delete(container *ClusterRegistry) error {
 	return c.apiClient.Ops.DoResourceDelete(ClusterRegistryType, &container.Resource)
 }
 
-func (c *ClusterRegistryClient) CollectionActionGetProjects(resource *ClusterRegistryCollection, input *GetProjectInput) (*GetProjectOutput, error) {
+func (c *ClusterRegistryClient) ActionGetProjects(resource *ClusterRegistry, input *GetProjectInput) (*GetProjectOutput, error) {
 	resp := &GetProjectOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(ClusterRegistryType, "getProjects", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(ClusterRegistryType, "getProjects", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *ClusterRegistryClient) CollectionActionGetRepositories(resource *ClusterRegistryCollection, input *GetRepositoryInput) (*GetRepositoryOutput, error) {
+func (c *ClusterRegistryClient) ActionGetRepositories(resource *ClusterRegistry, input *GetRepositoryInput) (*GetRepositoryOutput, error) {
 	resp := &GetRepositoryOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(ClusterRegistryType, "getRepositories", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(ClusterRegistryType, "getRepositories", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *ClusterRegistryClient) CollectionActionGetRepositoryTags(resource *ClusterRegistryCollection, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error) {
+func (c *ClusterRegistryClient) ActionGetRepositoryTags(resource *ClusterRegistry, input *GetRepositoryTagsInput) (*GetRepositoryTagsOutput, error) {
 	resp := &GetRepositoryTagsOutput{}
-	err := c.apiClient.Ops.DoCollectionAction(ClusterRegistryType, "getRepositoryTags", &resource.Collection, input, resp)
+	err := c.apiClient.Ops.DoAction(ClusterRegistryType, "getRepositoryTags", &resource.Resource, input, resp)
 	return resp, err
 }
 
-func (c *ClusterRegistryClient) CollectionActionTest(resource *ClusterRegistryCollection, input *ClusterRegistryTestInput) error {
-	err := c.apiClient.Ops.DoCollectionAction(ClusterRegistryType, "test", &resource.Collection, input, nil)
+func (c *ClusterRegistryClient) ActionTest(resource *ClusterRegistry, input *ClusterRegistryTestInput) error {
+	err := c.apiClient.Ops.DoAction(ClusterRegistryType, "test", &resource.Resource, input, nil)
 	return err
 }

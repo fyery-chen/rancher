@@ -70,7 +70,7 @@ func registryTypes(schema *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.GetRepositoryOutput{}).
 		MustImport(&Version, v3.GetRepositoryTagsOutput{}).
 		MustImportAndCustomize(&Version, v3.ClusterRegistry{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
+			schema.ResourceActions = map[string]types.Action{
 				"test": {
 					Input: "clusterRegistryTestInput",
 				},
@@ -89,7 +89,7 @@ func registryTypes(schema *types.Schemas) *types.Schemas {
 			}
 		}).
 		MustImportAndCustomize(&Version, v3.ProjectRegistry{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
+			schema.ResourceActions = map[string]types.Action{
 				"test": {
 					Input: "projectRegistryTestInput",
 				},
@@ -108,7 +108,7 @@ func registryTypes(schema *types.Schemas) *types.Schemas {
 			}
 		}).
 		MustImportAndCustomize(&Version, v3.GlobalRegistry{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
+			schema.ResourceActions = map[string]types.Action{
 				"test": {
 					Input: "globalRegistryTestInput",
 				},
