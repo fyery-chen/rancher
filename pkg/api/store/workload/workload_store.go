@@ -3,6 +3,7 @@ package workload
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -20,11 +21,16 @@ import (
 	projectschema "github.com/rancher/types/apis/project.cattle.io/v3/schema"
 	managementv3 "github.com/rancher/types/client/management/v3"
 	projectclient "github.com/rancher/types/client/project/v3"
+	"github.com/rancher/types/config"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func NewWorkloadAggregateStore(schemas *types.Schemas, manager *clustermanager.Manager) {
+const (
+	defaultNamespace = "cattle-system"
+)
+
+func NewWorkloadAggregateStore(schemas *types.Schemas, manager *clustermanager.Manager, mgmt *config.ScaledContext) {
 	workloadSchema := schemas.Schema(&schema.Version, "workload")
 	store := NewAggregateStore(schemas.Schema(&schema.Version, "deployment"),
 		schemas.Schema(&schema.Version, "replicaSet"),
@@ -42,9 +48,17 @@ func NewWorkloadAggregateStore(schemas *types.Schemas, manager *clustermanager.M
 		}
 	}
 
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = defaultNamespace
+	}
+	workloadSchema.CollectionFormatter = workload.CollectionFormatter
+
 	workloadSchema.Store = store
 	actionWrapper := workload.ActionWrapper{
 		ClusterManager: manager,
+		NodeClient:     mgmt.Management.Nodes("").Controller().Lister(),
+		SecretClient:   mgmt.Core.Secrets(namespace),
 	}
 	workloadSchema.ActionHandler = actionWrapper.ActionHandler
 	workloadSchema.LinkHandler = workload.Handler{}.LinkHandler

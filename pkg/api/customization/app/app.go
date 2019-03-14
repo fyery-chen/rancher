@@ -127,6 +127,7 @@ func (w Wrapper) ActionHandler(actionName string, action *types.Action, apiConte
 		if _, err := w.AppGetter.Apps(namespace).Update(obj); err != nil {
 			return err
 		}
+		apiContext.WriteResponse(http.StatusNoContent, nil)
 		return nil
 	case "rollback":
 		revision := actionInput["revisionId"]
@@ -149,6 +150,7 @@ func (w Wrapper) ActionHandler(actionName string, action *types.Action, apiConte
 		if _, err := w.AppGetter.Apps(namespace).Update(obj); err != nil {
 			return err
 		}
+		apiContext.WriteResponse(http.StatusNoContent, nil)
 		return nil
 	}
 	return nil

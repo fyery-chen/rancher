@@ -111,3 +111,20 @@ type Workload struct {
 type DeploymentRollbackInput struct {
 	ReplicaSetID string `json:"replicaSetId" norman:"type=reference[replicaSet]"`
 }
+
+type CloudProviderImageListInput struct {
+	ProviderType string `json:"providerType,omitempty"`
+}
+
+type ImageInfo struct {
+	Name         string   `json:"name,omitempty"`
+	Namespace    string   `json:"namespace,omitempty"`
+	Path         string   `json:"path,omitempty"`
+	InternalPath string   `json:"internal_path,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+}
+
+type CloudProviderImageListOutput struct {
+	Images  []ImageInfo `json:"images,omitempty"`
+	Message string      `json:"message,omitempty"`
+}

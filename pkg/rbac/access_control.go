@@ -57,7 +57,11 @@ func (a *AccessControl) canAccess(obj map[string]interface{}, permset ListPermis
 		namespace, _ = obj["namespaceId"].(string)
 		if namespace == "" {
 			pieces := strings.Split(id, ":")
-			namespace = pieces[0]
+			if len(pieces) == 2 {
+				namespace = pieces[0]
+			} else if obj["baseType"] == "namespace" {
+				namespace = pieces[0]
+			}
 		}
 	} else {
 		id = "*"

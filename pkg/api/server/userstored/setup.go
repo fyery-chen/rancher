@@ -49,7 +49,7 @@ func Setup(ctx context.Context, mgmt *config.ScaledContext, clusterManager *clus
 
 	Secret(ctx, mgmt, schemas)
 	Service(ctx, schemas, mgmt)
-	Workload(schemas, clusterManager)
+	Workload(schemas, clusterManager, mgmt)
 	Namespace(schemas, clusterManager)
 
 	SetProjectID(schemas, clusterManager, k8sProxy)
@@ -91,8 +91,8 @@ func Namespace(schemas *types.Schemas, manager *clustermanager.Manager) {
 	namespaceSchema.ActionHandler = actionWrapper.ActionHandler
 }
 
-func Workload(schemas *types.Schemas, clusterManager *clustermanager.Manager) {
-	workload.NewWorkloadAggregateStore(schemas, clusterManager)
+func Workload(schemas *types.Schemas, clusterManager *clustermanager.Manager, mgmt *config.ScaledContext) {
+	workload.NewWorkloadAggregateStore(schemas, clusterManager, mgmt)
 }
 
 func Service(ctx context.Context, schemas *types.Schemas, mgmt *config.ScaledContext) {

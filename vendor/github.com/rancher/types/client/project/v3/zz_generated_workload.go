@@ -163,6 +163,10 @@ type WorkloadOperations interface {
 	ActionResume(resource *Workload) error
 
 	ActionRollback(resource *Workload, input *RollbackRevision) error
+
+	ActionScaleDown(resource *Workload, input *DeploymentScaleInput) error
+
+	ActionScaleUp(resource *Workload, input *DeploymentScaleInput) error
 }
 
 func newWorkloadClient(apiClient *Client) *WorkloadClient {
@@ -228,5 +232,15 @@ func (c *WorkloadClient) ActionResume(resource *Workload) error {
 
 func (c *WorkloadClient) ActionRollback(resource *Workload, input *RollbackRevision) error {
 	err := c.apiClient.Ops.DoAction(WorkloadType, "rollback", &resource.Resource, input, nil)
+	return err
+}
+
+func (c *WorkloadClient) ActionScaleDown(resource *Workload, input *DeploymentScaleInput) error {
+	err := c.apiClient.Ops.DoAction(WorkloadType, "scaleDown", &resource.Resource, input, nil)
+	return err
+}
+
+func (c *WorkloadClient) ActionScaleUp(resource *Workload, input *DeploymentScaleInput) error {
+	err := c.apiClient.Ops.DoAction(WorkloadType, "scaleUp", &resource.Resource, input, nil)
 	return err
 }

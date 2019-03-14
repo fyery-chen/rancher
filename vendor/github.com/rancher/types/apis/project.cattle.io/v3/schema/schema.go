@@ -99,33 +99,43 @@ type jobOverride struct {
 }
 
 func workloadTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.MustImportAndCustomize(&Version, v3.Workload{},
-		func(schema *types.Schema) {
-			toInclude := []string{"deployment", "replicationController", "statefulSet",
-				"daemonSet", "job", "cronJob", "replicaSet"}
-			for _, name := range toInclude {
-				baseSchema := schemas.Schema(&Version, name)
-				if baseSchema == nil {
-					continue
+	return schemas.
+		MustImport(&Version, v3.ImageInfo{}).
+		MustImport(&Version, v3.CloudProviderImageListInput{}).
+		MustImport(&Version, v3.CloudProviderImageListOutput{}).
+		MustImportAndCustomize(&Version, v3.Workload{},
+			func(schema *types.Schema) {
+				toInclude := []string{"deployment", "replicationController", "statefulSet",
+					"daemonSet", "job", "cronJob", "replicaSet"}
+				for _, name := range toInclude {
+					baseSchema := schemas.Schema(&Version, name)
+					if baseSchema == nil {
+						continue
+					}
+					for name, field := range baseSchema.ResourceFields {
+						schema.ResourceFields[name] = field
+					}
 				}
-				for name, field := range baseSchema.ResourceFields {
-					schema.ResourceFields[name] = field
+				schema.ResourceActions = map[string]types.Action{
+					"rollback": {
+						Input: "rollbackRevision",
+					},
+					"pause":  {},
+					"resume": {},
+					"scaleUp": {
+						Input: "deploymentScaleInput",
+					},
+					"scaleDown": {
+						Input: "deploymentScaleInput",
+					},
 				}
-			}
-			schema.ResourceActions = map[string]types.Action{
-				"rollback": {
-					Input: "rollbackRevision",
-				},
-				"pause":  {},
-				"resume": {},
-			}
-			schema.MustCustomizeField("name", func(field types.Field) types.Field {
-				field.Type = "dnsLabelRestricted"
-				field.Nullable = false
-				field.Required = true
-				return field
+				schema.MustCustomizeField("name", func(field types.Field) types.Field {
+					field.Type = "dnsLabelRestricted"
+					field.Nullable = false
+					field.Required = true
+					return field
+				})
 			})
-		})
 }
 
 func statefulSetTypes(schemas *types.Schemas) *types.Schemas {
