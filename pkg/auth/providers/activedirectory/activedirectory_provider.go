@@ -109,6 +109,8 @@ func (p *adProvider) SearchPrincipals(searchKey, principalType string, myToken v
 			if principal.PrincipalType == "user" {
 				if p.isThisUserMe(myToken.UserPrincipal, principal) {
 					principal.Me = true
+				} else {
+					principal.Me = false
 				}
 			} else if principal.PrincipalType == "group" {
 				principal.MemberOf = p.tokenMGR.IsMemberOf(myToken, principal)
@@ -138,6 +140,8 @@ func (p *adProvider) GetPrincipal(principalID string, token v3.Token) (v3.Princi
 	}
 	if p.isThisUserMe(token.UserPrincipal, *principal) {
 		principal.Me = true
+	} else {
+		principal.Me = false
 	}
 	return *principal, err
 }

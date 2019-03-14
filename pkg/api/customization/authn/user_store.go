@@ -64,6 +64,8 @@ func SetUserStore(schema *types.Schema, mgmt *config.ScaledContext) {
 				if ok {
 					if id == userID {
 						data["me"] = "true"
+					} else {
+						data["me"] = "false"
 					}
 				}
 			}
