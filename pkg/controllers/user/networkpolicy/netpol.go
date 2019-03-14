@@ -120,6 +120,7 @@ func (npmgr *netpolMgr) handleHostNetwork(clusterNamespace string) error {
 	}
 
 	logrus.Debugf("netpolMgr: handleHostNetwork: processing %d nodes", len(nodes))
+	var foundFlannel bool
 	policyName := "hn-nodes"
 	np := generateNodesNetworkPolicy()
 	for _, node := range nodes {
@@ -127,6 +128,7 @@ func (npmgr *netpolMgr) handleHostNetwork(clusterNamespace string) error {
 			logrus.Debugf("netpolMgr: handleHostNetwork: node=%v doesn't have flannel label, skipping", node.Name)
 			continue
 		}
+		foundFlannel = true
 		podCIDRFirstIP, _, err := net.ParseCIDR(node.Spec.PodCIDR)
 		if err != nil {
 			logrus.Debugf("netpolMgr: handleHostNetwork: node=%+v", node)
@@ -137,6 +139,10 @@ func (npmgr *netpolMgr) handleHostNetwork(clusterNamespace string) error {
 			CIDR: podCIDRFirstIP.String() + "/32",
 		}
 		np.Spec.Ingress[0].From = append(np.Spec.Ingress[0].From, knetworkingv1.NetworkPolicyPeer{IPBlock: &ipBlock})
+	}
+
+	if !foundFlannel {
+		return nil
 	}
 
 	// sort ipblocks so it always appears in a certain order
