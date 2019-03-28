@@ -116,7 +116,9 @@ func Setup(ctx context.Context, apiContext *config.ScaledContext, clusterManager
 		client.UserAttributeType,
 		client.UserType,
 		client.GlobalDNSType,
-		client.GlobalDNSProviderType)
+		client.GlobalDNSProviderType,
+		client.IstioClusterMonitorGraphType,
+		client.IstioProjectMonitorGraphType)
 
 	factory.BatchCreateCRDs(ctx, config.ManagementStorageContext, schemas, &projectschema.Version,
 		projectclient.AppType,
@@ -501,7 +503,19 @@ func Monitor(schemas *types.Schemas, management *config.ScaledContext, clusterMa
 	projectGraphHandler := monitor.NewProjectGraphHandler(management.Dialer, clusterManager)
 	metricHandler := monitor.NewMetricHandler(management.Dialer, clusterManager)
 
-	schema := schemas.Schema(&managementschema.Version, client.ClusterMonitorGraphType)
+	//istio metrics
+	istioClusterGraphHandler := monitor.NewIstioClusterGraphHandler(management.Dialer, clusterManager)
+	istioProjectGraphHandler := monitor.NewIstioProjectGraphHandler(management.Dialer, clusterManager)
+
+	schema := schemas.Schema(&managementschema.Version, client.IstioClusterMonitorGraphType)
+	schema.CollectionFormatter = monitor.QueryGraphCollectionFormatter
+	schema.ActionHandler = istioClusterGraphHandler.QuerySeriesAction
+
+	schema = schemas.Schema(&managementschema.Version, client.IstioProjectMonitorGraphType)
+	schema.CollectionFormatter = monitor.QueryGraphCollectionFormatter
+	schema.ActionHandler = istioProjectGraphHandler.QuerySeriesAction
+
+	schema = schemas.Schema(&managementschema.Version, client.ClusterMonitorGraphType)
 	schema.CollectionFormatter = monitor.QueryGraphCollectionFormatter
 	schema.ActionHandler = clusterGraphHandler.QuerySeriesAction
 

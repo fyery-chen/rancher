@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -28,6 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	helmcommon "github.com/rancher/rancher/pkg/controllers/user/helm/common"
 )
 
 const (
@@ -42,23 +45,27 @@ const (
 func Register(ctx context.Context, user *config.UserContext, kubeConfigGetter common.KubeConfigGetter) {
 	appClient := user.Management.Project.Apps("")
 	stackLifecycle := &Lifecycle{
-		KubeConfigGetter:      kubeConfigGetter,
-		SystemAccountManager:  systemaccount.NewManager(user.Management),
-		TokenClient:           user.Management.Management.Tokens(""),
-		UserClient:            user.Management.Management.Users(""),
-		UserManager:           user.Management.UserManager,
-		K8sClient:             user.K8sClient,
-		TemplateVersionClient: user.Management.Management.CatalogTemplateVersions(""),
-		TemplateClient:        user.Management.Management.CatalogTemplates(""),
-		CatalogLister:         user.Management.Management.Catalogs("").Controller().Lister(),
-		ClusterCatalogLister:  user.Management.Management.ClusterCatalogs("").Controller().Lister(),
-		ProjectCatalogLister:  user.Management.Management.ProjectCatalogs("").Controller().Lister(),
-		ListenConfigClient:    user.Management.Management.ListenConfigs(""),
-		ClusterName:           user.ClusterName,
-		AppRevisionGetter:     user.Management.Project,
-		AppGetter:             user.Management.Project,
-		NsLister:              user.Core.Namespaces("").Controller().Lister(),
-		NsClient:              user.Core.Namespaces(""),
+		KubeConfigGetter:         kubeConfigGetter,
+		SystemAccountManager:     systemaccount.NewManager(user.Management),
+		TokenClient:              user.Management.Management.Tokens(""),
+		UserClient:               user.Management.Management.Users(""),
+		UserManager:              user.Management.UserManager,
+		K8sClient:                user.K8sClient,
+		TemplateVersionClient:    user.Management.Management.CatalogTemplateVersions(""),
+		TemplateClient:           user.Management.Management.CatalogTemplates(""),
+		CatalogLister:            user.Management.Management.Catalogs("").Controller().Lister(),
+		ClusterCatalogLister:     user.Management.Management.ClusterCatalogs("").Controller().Lister(),
+		ProjectCatalogLister:     user.Management.Management.ProjectCatalogs("").Controller().Lister(),
+		ListenConfigClient:       user.Management.Management.ListenConfigs(""),
+		ClusterName:              user.ClusterName,
+		AppRevisionGetter:        user.Management.Project,
+		AppGetter:                user.Management.Project,
+		NsLister:                 user.Core.Namespaces("").Controller().Lister(),
+		NsClient:                 user.Core.Namespaces(""),
+		istioClusterGraphClient:  user.Management.Management.IstioClusterMonitorGraphs(metav1.NamespaceAll),
+		istioProjectGraphClient:  user.Management.Management.IstioProjectMonitorGraphs(metav1.NamespaceAll),
+		istioMonitorMetricClient: user.Management.Management.MonitorMetrics(metav1.NamespaceAll),
+		projectGetter:            user.Management.Management.Projects(user.ClusterName),
 	}
 	appClient.AddClusterScopedLifecycle(ctx, "helm-controller", user.ClusterName, stackLifecycle)
 
@@ -66,23 +73,27 @@ func Register(ctx context.Context, user *config.UserContext, kubeConfigGetter co
 }
 
 type Lifecycle struct {
-	KubeConfigGetter      common.KubeConfigGetter
-	SystemAccountManager  *systemaccount.Manager
-	UserManager           user.Manager
-	TokenClient           mgmtv3.TokenInterface
-	UserClient            mgmtv3.UserInterface
-	TemplateVersionClient mgmtv3.CatalogTemplateVersionInterface
-	TemplateClient        mgmtv3.CatalogTemplateInterface
-	CatalogLister         mgmtv3.CatalogLister
-	ClusterCatalogLister  mgmtv3.ClusterCatalogLister
-	ProjectCatalogLister  mgmtv3.ProjectCatalogLister
-	K8sClient             kubernetes.Interface
-	ListenConfigClient    mgmtv3.ListenConfigInterface
-	ClusterName           string
-	AppRevisionGetter     v3.AppRevisionsGetter
-	AppGetter             v3.AppsGetter
-	NsLister              corev1.NamespaceLister
-	NsClient              corev1.NamespaceInterface
+	KubeConfigGetter         common.KubeConfigGetter
+	SystemAccountManager     *systemaccount.Manager
+	UserManager              user.Manager
+	TokenClient              mgmtv3.TokenInterface
+	UserClient               mgmtv3.UserInterface
+	TemplateVersionClient    mgmtv3.CatalogTemplateVersionInterface
+	TemplateClient           mgmtv3.CatalogTemplateInterface
+	CatalogLister            mgmtv3.CatalogLister
+	ClusterCatalogLister     mgmtv3.ClusterCatalogLister
+	ProjectCatalogLister     mgmtv3.ProjectCatalogLister
+	K8sClient                kubernetes.Interface
+	ListenConfigClient       mgmtv3.ListenConfigInterface
+	ClusterName              string
+	AppRevisionGetter        v3.AppRevisionsGetter
+	AppGetter                v3.AppsGetter
+	NsLister                 corev1.NamespaceLister
+	NsClient                 corev1.NamespaceInterface
+	istioClusterGraphClient  mgmtv3.IstioClusterMonitorGraphInterface
+	istioProjectGraphClient  mgmtv3.IstioProjectMonitorGraphInterface
+	istioMonitorMetricClient mgmtv3.MonitorMetricInterface
+	projectGetter            mgmtv3.ProjectInterface
 }
 
 func (l *Lifecycle) Create(obj *v3.App) (runtime.Object, error) {
@@ -196,7 +207,27 @@ func (l *Lifecycle) Updated(obj *v3.App) (runtime.Object, error) {
 	if _, err := l.NsClient.Update(ns); err != nil {
 		return result, err
 	}
+
+	l.deployIstioExpression(obj)
+
 	return result, nil
+}
+
+func (l *Lifecycle) deployIstioExpression(obj *v3.App) {
+	values, err := url.Parse(obj.Spec.ExternalID)
+	if err != nil {
+		logrus.Errorf("check catalog type failed: %s", err.Error())
+	}
+
+	catalogWithNamespace := values.Query().Get("catalog")
+	split := strings.SplitN(catalogWithNamespace, "/", 2)
+	catalog := split[len(split)-1]
+
+	template := values.Query().Get("template")
+
+	if catalog == "library" && template == "rancher-istio" {
+		helmcommon.IsMetricExpressionDeployed(l.ClusterName, l.projectGetter, l.istioClusterGraphClient, l.istioProjectGraphClient, l.istioMonitorMetricClient, obj)
+	}
 }
 
 func (l *Lifecycle) DeployApp(obj *v3.App) (*v3.App, error) {
@@ -286,7 +317,27 @@ func (l *Lifecycle) Remove(obj *v3.App) (runtime.Object, error) {
 	if _, err := l.NsClient.Update(ns); err != nil {
 		return obj, err
 	}
+
+	l.withdrawIstioExpression(obj)
+
 	return obj, nil
+}
+
+func (l *Lifecycle) withdrawIstioExpression(obj *v3.App) {
+	values, err := url.Parse(obj.Spec.ExternalID)
+	if err != nil {
+		logrus.Errorf("check catalog type failed: %s", err.Error())
+	}
+
+	catalogWithNamespace := values.Query().Get("catalog")
+	split := strings.SplitN(catalogWithNamespace, "/", 2)
+	catalog := split[len(split)-1]
+
+	template := values.Query().Get("template")
+
+	if catalog == "library" && template == "rancher-istio" {
+		helmcommon.IsMetricExpressionWithdraw(l.ClusterName, l.projectGetter, l.istioClusterGraphClient, l.istioProjectGraphClient, l.istioMonitorMetricClient, obj)
+	}
 }
 
 func (l *Lifecycle) Run(obj *v3.App, template, templateDir, notes string) error {
