@@ -36,6 +36,17 @@ const (
 	MonitoringConditionMetricExpressionDeployed  condition.Cond = "MetricExpressionDeployed"
 )
 
+type IstioMonitorGraph struct {
+	types.Namespaced
+
+	metav1.TypeMeta `json:",inline"`
+	// Standard object’s metadata. More info:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec ClusterMonitorGraphSpec `json:"spec"`
+}
+
 type ClusterMonitorGraph struct {
 	types.Namespaced
 

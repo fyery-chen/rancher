@@ -5789,5 +5789,29 @@ spec:
   yAxis:
     unit: kbps
 ---
+apiVersion: management.cattle.io/v3
+kind: IstioMonitorGraph
+metadata:
+  labels:
+    app: metric-expression
+    source: rancher-monitoring
+    level: project
+    component: workload
+  name: workload-disk-io
+spec:
+  resourceType: workload
+  priority: 604
+  title: workload-disk-io
+  metricsSelector:
+    details: "false"
+    component: workload
+    graph: disk-io
+  detailsMetricsSelector:
+    details: "true"
+    component: workload
+    graph: disk-io
+  yAxis:
+    unit: kbps
+---
 `
 )

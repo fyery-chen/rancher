@@ -797,6 +797,14 @@ func monitorTypes(schemas *types.Schemas) *types.Schemas {
 					Output: "queryProjectGraphOutput",
 				},
 			}
+		}).
+		MustImportAndCustomize(&Version, v3.IstioMonitorGraph{}, func(schema *types.Schema) {
+			schema.CollectionActions = map[string]types.Action{
+				"query": {
+					Input:  "queryGraphInput",
+					Output: "queryClusterGraphOutput",
+				},
+			}
 		})
 
 }

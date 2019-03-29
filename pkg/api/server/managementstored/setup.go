@@ -502,10 +502,13 @@ func Monitor(schemas *types.Schemas, management *config.ScaledContext, clusterMa
 	metricHandler := monitor.NewMetricHandler(management.Dialer, clusterManager)
 
 	//istio metrics
-	istioClusterGraphHandler := monitor.NewIstioClusterGraphHandler(management.Dialer, clusterManager)
-	istioProjectGraphHandler := monitor.NewIstioProjectGraphHandler(management.Dialer, clusterManager)
+	istioGraphHandler := monitor.NewIstioGraphHandler(management.Dialer, clusterManager)
 
-	schema := schemas.Schema(&managementschema.Version, client.ClusterMonitorGraphType)
+	schema := schemas.Schema(&managementschema.Version, client.IstioMonitorGraphType)
+	schema.CollectionFormatter = monitor.QueryGraphCollectionFormatter
+	schema.ActionHandler = istioGraphHandler.QuerySeriesAction
+
+	schema = schemas.Schema(&managementschema.Version, client.ClusterMonitorGraphType)
 	schema.CollectionFormatter = monitor.QueryGraphCollectionFormatter
 	schema.ActionHandler = clusterGraphHandler.QuerySeriesAction
 

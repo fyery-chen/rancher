@@ -74,6 +74,7 @@ type Interface interface {
 	MonitorMetricsGetter
 	ClusterMonitorGraphsGetter
 	ProjectMonitorGraphsGetter
+	IstioMonitorGraphsGetter
 	CloudCredentialsGetter
 }
 
@@ -134,6 +135,7 @@ type Clients struct {
 	MonitorMetric                           MonitorMetricClient
 	ClusterMonitorGraph                     ClusterMonitorGraphClient
 	ProjectMonitorGraph                     ProjectMonitorGraphClient
+	IstioMonitorGraph                       IstioMonitorGraphClient
 	CloudCredential                         CloudCredentialClient
 }
 
@@ -196,6 +198,7 @@ type Client struct {
 	monitorMetricControllers                           map[string]MonitorMetricController
 	clusterMonitorGraphControllers                     map[string]ClusterMonitorGraphController
 	projectMonitorGraphControllers                     map[string]ProjectMonitorGraphController
+	istioMonitorGraphControllers                       map[string]IstioMonitorGraphController
 	cloudCredentialControllers                         map[string]CloudCredentialController
 }
 
@@ -394,6 +397,9 @@ func NewClientsFromInterface(iface Interface) *Clients {
 		ProjectMonitorGraph: &projectMonitorGraphClient2{
 			iface: iface.ProjectMonitorGraphs(""),
 		},
+		IstioMonitorGraph: &istioMonitorGraphClient2{
+			iface: iface.IstioMonitorGraphs(""),
+		},
 		CloudCredential: &cloudCredentialClient2{
 			iface: iface.CloudCredentials(""),
 		},
@@ -467,6 +473,7 @@ func NewForConfig(config rest.Config) (Interface, error) {
 		monitorMetricControllers:                           map[string]MonitorMetricController{},
 		clusterMonitorGraphControllers:                     map[string]ClusterMonitorGraphController{},
 		projectMonitorGraphControllers:                     map[string]ProjectMonitorGraphController{},
+		istioMonitorGraphControllers:                       map[string]IstioMonitorGraphController{},
 		cloudCredentialControllers:                         map[string]CloudCredentialController{},
 	}, nil
 }
@@ -1179,6 +1186,19 @@ type ProjectMonitorGraphsGetter interface {
 func (c *Client) ProjectMonitorGraphs(namespace string) ProjectMonitorGraphInterface {
 	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &ProjectMonitorGraphResource, ProjectMonitorGraphGroupVersionKind, projectMonitorGraphFactory{})
 	return &projectMonitorGraphClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type IstioMonitorGraphsGetter interface {
+	IstioMonitorGraphs(namespace string) IstioMonitorGraphInterface
+}
+
+func (c *Client) IstioMonitorGraphs(namespace string) IstioMonitorGraphInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &IstioMonitorGraphResource, IstioMonitorGraphGroupVersionKind, istioMonitorGraphFactory{})
+	return &istioMonitorGraphClient{
 		ns:           namespace,
 		client:       c,
 		objectClient: objectClient,
