@@ -52,17 +52,17 @@ func (h *IstioGraphHandler) QuerySeriesAction(actionName string, action *types.A
 		return fmt.Errorf("get usercontext failed, %v", err)
 	}
 
-	prometheusName, prometheusNamespace := monitorutil.IstioMonitoringInfo()
-	token, err := getAuthToken(userContext, prometheusName, prometheusNamespace)
-	if err != nil {
-		return err
-	}
+	//rometheusName, prometheusNamespace := monitorutil.IstioMonitoringInfo()
+	//token, err := getAuthToken(userContext, prometheusName, prometheusNamespace)
+	//if err != nil {
+	//	return err
+	//}
 
 	reqContext, cancel := context.WithTimeout(context.Background(), prometheusReqTimeout)
 	defer cancel()
 
 	svcName, svcNamespace, svcPort := monitorutil.IstioPrometheusEndpoint()
-	prometheusQuery, err := NewPrometheusQuery(reqContext, clusterName, token, svcNamespace, svcName, svcPort, h.dialerFactory)
+	prometheusQuery, err := NewPrometheusQuery(reqContext, clusterName, "", svcNamespace, svcName, svcPort, h.dialerFactory)
 	if err != nil {
 		return err
 	}

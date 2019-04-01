@@ -15,6 +15,7 @@ var (
 	preDefinedClusterMetrics = getPredefinedClusterMetrics()
 	preDefinedClusterGraph   = getPredefinedClusterGraph()
 	preDefinedProjectGraph   = getPredefinedProjectGraph()
+	preDefinedIstioGraph     = getPredefinedIstioGraph()
 )
 
 type templateData struct {
@@ -60,6 +61,23 @@ func getPredefinedProjectGraph() []*managementv3.ProjectMonitorGraph {
 	var rtn []*managementv3.ProjectMonitorGraph
 	for _, yml := range yamls {
 		var tmp managementv3.ProjectMonitorGraph
+		if err := yamlToObject(yml, &tmp); err != nil {
+			panic(err)
+		}
+		if tmp.Name == "" {
+			continue
+		}
+		rtn = append(rtn, &tmp)
+	}
+
+	return rtn
+}
+
+func getPredefinedIstioGraph() []*managementv3.IstioMonitorGraph {
+	yamls := strings.Split(IstioMetricExpression, "\n---\n")
+	var rtn []*managementv3.IstioMonitorGraph
+	for _, yml := range yamls {
+		var tmp managementv3.IstioMonitorGraph
 		if err := yamlToObject(yml, &tmp); err != nil {
 			panic(err)
 		}
@@ -5425,7 +5443,56 @@ spec:
     container_name!=""}[5m])) by (pod_name)
   legendFormat: CPU cfs throttled([[pod_name]])
   description: workload cpu cfs throttled seconds sum rate
----  
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: istio-requests-total-4xxs
+  labels:
+    app: metric-expression
+    component: istio
+    details: "false"
+    level: cluster
+    graph: 4xxs
+    source: rancher-monitoring
+spec:
+  expression: sum(irate(istio_requests_total{reporter=\"destination\", response_code=~\"4.*\"}[1m])) 
+  legendFormat: 
+  description: the count of requests that response code is 4xx
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: istio-requests-total-5xxs
+  labels:
+    app: metric-expression
+    component: istio
+    details: "false"
+    level: cluster
+    graph: 5xxs
+    source: rancher-monitoring
+spec:
+  expression: sum(irate(istio_requests_total{reporter=\"destination\", response_code=~\"5.*\"}[1m])) 
+  legendFormat: 
+  description: the count of requests that response code is 5xx
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: istio-requests-total-success
+  labels:
+    app: metric-expression
+    component: istio
+    details: "false"
+    level: cluster
+    graph: global-success-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(istio_requests_total{reporter=\"destination\", response_code!~\"5.*\"}[1m])) / 
+    sum(rate(istio_requests_total{reporter=\"destination\"}[1m]))) 
+  legendFormat: 
+  description: the count of requests that response code is non-5xx
+---
 `
 
 	ProjectMetricExpression = `
@@ -5812,6 +5879,75 @@ spec:
     graph: disk-io
   yAxis:
     unit: kbps
+---
+`
+
+	IstioMetricExpression = `
+apiVersion: management.cattle.io/v3
+kind: IstioMonitorGraph
+metadata:
+  labels:
+    app: metric-expression
+    source: rancher-monitoring
+    level: cluster
+    component: istio
+  name: istio-4xxs
+spec:
+  resourceType: mesh
+  priority: 800
+  title: istio-4xxs
+  metricsSelector:
+    details: "false"
+    component: istio
+    graph: 4xxs
+  detailsMetricsSelector:
+    details: "true"
+    component: istio
+    graph: 4xxs-details
+---
+apiVersion: management.cattle.io/v3
+kind: IstioMonitorGraph
+metadata:
+  labels:
+    app: metric-expression
+    source: rancher-monitoring
+    level: cluster
+    component: istio
+  name: istio-5xxs
+spec:
+  resourceType: mesh
+  priority: 800
+  title: istio-5xxs
+  metricsSelector:
+    details: "false"
+    component: istio
+    graph: 5xxs
+  detailsMetricsSelector:
+    details: "true"
+    component: istio
+    graph: 5xxs-details
+---
+apiVersion: management.cattle.io/v3
+kind: IstioMonitorGraph
+metadata:
+  labels:
+    app: metric-expression
+    source: rancher-monitoring
+    level: cluster
+    component: istio
+  name: istio-global-success-rate
+spec:
+  resourceType: mesh
+  priority: 800
+  title: istio-global-success-rate
+  metricsSelector:
+    details: "false"
+    component: istio
+    graph: global-success-rate
+  detailsMetricsSelector:
+    details: "true"
+    component: istio
+    graph: global-success-rate-details
 ---
 `
 )
