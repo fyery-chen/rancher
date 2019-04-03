@@ -5456,7 +5456,7 @@ metadata:
     graph: 4xxs
     source: rancher-monitoring
 spec:
-  expression: sum(irate(istio_requests_total{reporter=\"destination\", response_code=~\"4.*\"}[1m])) 
+  expression: sum(irate(istio_requests_total{reporter="destination", response_code=~"4.*"}[1m])) 
   legendFormat: 
   description: the count of requests that response code is 4xx
 ---
@@ -5472,7 +5472,7 @@ metadata:
     graph: 5xxs
     source: rancher-monitoring
 spec:
-  expression: sum(irate(istio_requests_total{reporter=\"destination\", response_code=~\"5.*\"}[1m])) 
+  expression: sum(irate(istio_requests_total{reporter="destination", response_code=~"5.*"}[1m])) 
   legendFormat: 
   description: the count of requests that response code is 5xx
 ---
@@ -5488,8 +5488,8 @@ metadata:
     graph: global-success-rate
     source: rancher-monitoring
 spec:
-  expression: sum(rate(istio_requests_total{reporter=\"destination\", response_code!~\"5.*\"}[1m])) / 
-    sum(rate(istio_requests_total{reporter=\"destination\"}[1m]))) 
+  expression: sum(rate(istio_requests_total{reporter="destination", response_code!~"5.*"}[1m])) / 
+    sum(rate(istio_requests_total{reporter="destination"}[1m]))) 
   legendFormat: 
   description: the count of requests that response code is non-5xx
 ---
