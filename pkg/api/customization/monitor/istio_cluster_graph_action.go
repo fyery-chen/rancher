@@ -75,7 +75,7 @@ func (h *IstioGraphHandler) QuerySeriesAction(actionName string, action *types.A
 		return err
 	}
 
-	var graphs []mgmtclientv3.ClusterMonitorGraph
+	var graphs []mgmtclientv3.IstioMonitorGraph
 	if err = access.List(apiContext, apiContext.Version, mgmtclientv3.IstioMonitorGraphType, &types.QueryOptions{Conditions: inputParser.Conditions}, &graphs); err != nil {
 		return err
 	}

@@ -755,6 +755,7 @@ func monitorTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.QueryGraphInput{}).
 		MustImport(&Version, v3.QueryClusterGraphOutput{}).
 		MustImport(&Version, v3.QueryProjectGraphOutput{}).
+		MustImport(&Version, v3.QueryIstioGraphOutput{}).
 		MustImport(&Version, v3.QueryClusterMetricInput{}).
 		MustImport(&Version, v3.QueryProjectMetricInput{}).
 		MustImport(&Version, v3.QueryMetricOutput{}).
@@ -802,7 +803,7 @@ func monitorTypes(schemas *types.Schemas) *types.Schemas {
 			schema.CollectionActions = map[string]types.Action{
 				"query": {
 					Input:  "queryGraphInput",
-					Output: "queryClusterGraphOutput",
+					Output: "queryIstioGraphOutput",
 				},
 			}
 		})

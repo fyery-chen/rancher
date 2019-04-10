@@ -66,7 +66,7 @@ type IstioMonitorGraphOperations interface {
 	ByID(id string) (*IstioMonitorGraph, error)
 	Delete(container *IstioMonitorGraph) error
 
-	CollectionActionQuery(resource *IstioMonitorGraphCollection, input *QueryGraphInput) (*QueryClusterGraphOutput, error)
+	CollectionActionQuery(resource *IstioMonitorGraphCollection, input *QueryGraphInput) (*QueryIstioGraphOutput, error)
 }
 
 func newIstioMonitorGraphClient(apiClient *Client) *IstioMonitorGraphClient {
@@ -120,8 +120,8 @@ func (c *IstioMonitorGraphClient) Delete(container *IstioMonitorGraph) error {
 	return c.apiClient.Ops.DoResourceDelete(IstioMonitorGraphType, &container.Resource)
 }
 
-func (c *IstioMonitorGraphClient) CollectionActionQuery(resource *IstioMonitorGraphCollection, input *QueryGraphInput) (*QueryClusterGraphOutput, error) {
-	resp := &QueryClusterGraphOutput{}
+func (c *IstioMonitorGraphClient) CollectionActionQuery(resource *IstioMonitorGraphCollection, input *QueryGraphInput) (*QueryIstioGraphOutput, error) {
+	resp := &QueryIstioGraphOutput{}
 	err := c.apiClient.Ops.DoCollectionAction(IstioMonitorGraphType, "query", &resource.Collection, input, resp)
 	return resp, err
 }

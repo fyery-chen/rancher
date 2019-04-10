@@ -132,6 +132,16 @@ type QueryClusterGraph struct {
 	Series    []*TimeSeries `json:"series" norman:"type=array[reference[timeSeries]]"`
 }
 
+type QueryIstioGraphOutput struct {
+	Type string            `json:"type,omitempty"`
+	Data []QueryIstioGraph `json:"data,omitempty"`
+}
+
+type QueryIstioGraph struct {
+	GraphName string        `json:"graphID" norman:"type=reference[istioMonitorGraph]"`
+	Series    []*TimeSeries `json:"series" norman:"type=array[reference[timeSeries]]"`
+}
+
 type QueryProjectGraphOutput struct {
 	Type string              `json:"type,omitempty"`
 	Data []QueryProjectGraph `json:"data,omitempty"`
