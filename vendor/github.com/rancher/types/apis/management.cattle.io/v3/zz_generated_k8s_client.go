@@ -74,7 +74,8 @@ type Interface interface {
 	MonitorMetricsGetter
 	ClusterMonitorGraphsGetter
 	ProjectMonitorGraphsGetter
-	IstioMonitorGraphsGetter
+	IstioClusterMonitorGraphsGetter
+	IstioProjectMonitorGraphsGetter
 	CloudCredentialsGetter
 }
 
@@ -135,7 +136,8 @@ type Clients struct {
 	MonitorMetric                           MonitorMetricClient
 	ClusterMonitorGraph                     ClusterMonitorGraphClient
 	ProjectMonitorGraph                     ProjectMonitorGraphClient
-	IstioMonitorGraph                       IstioMonitorGraphClient
+	IstioClusterMonitorGraph                IstioClusterMonitorGraphClient
+	IstioProjectMonitorGraph                IstioProjectMonitorGraphClient
 	CloudCredential                         CloudCredentialClient
 }
 
@@ -198,7 +200,8 @@ type Client struct {
 	monitorMetricControllers                           map[string]MonitorMetricController
 	clusterMonitorGraphControllers                     map[string]ClusterMonitorGraphController
 	projectMonitorGraphControllers                     map[string]ProjectMonitorGraphController
-	istioMonitorGraphControllers                       map[string]IstioMonitorGraphController
+	istioClusterMonitorGraphControllers                map[string]IstioClusterMonitorGraphController
+	istioProjectMonitorGraphControllers                map[string]IstioProjectMonitorGraphController
 	cloudCredentialControllers                         map[string]CloudCredentialController
 }
 
@@ -397,8 +400,11 @@ func NewClientsFromInterface(iface Interface) *Clients {
 		ProjectMonitorGraph: &projectMonitorGraphClient2{
 			iface: iface.ProjectMonitorGraphs(""),
 		},
-		IstioMonitorGraph: &istioMonitorGraphClient2{
-			iface: iface.IstioMonitorGraphs(""),
+		IstioClusterMonitorGraph: &istioClusterMonitorGraphClient2{
+			iface: iface.IstioClusterMonitorGraphs(""),
+		},
+		IstioProjectMonitorGraph: &istioProjectMonitorGraphClient2{
+			iface: iface.IstioProjectMonitorGraphs(""),
 		},
 		CloudCredential: &cloudCredentialClient2{
 			iface: iface.CloudCredentials(""),
@@ -473,7 +479,8 @@ func NewForConfig(config rest.Config) (Interface, error) {
 		monitorMetricControllers:                           map[string]MonitorMetricController{},
 		clusterMonitorGraphControllers:                     map[string]ClusterMonitorGraphController{},
 		projectMonitorGraphControllers:                     map[string]ProjectMonitorGraphController{},
-		istioMonitorGraphControllers:                       map[string]IstioMonitorGraphController{},
+		istioClusterMonitorGraphControllers:                map[string]IstioClusterMonitorGraphController{},
+		istioProjectMonitorGraphControllers:                map[string]IstioProjectMonitorGraphController{},
 		cloudCredentialControllers:                         map[string]CloudCredentialController{},
 	}, nil
 }
@@ -1192,13 +1199,26 @@ func (c *Client) ProjectMonitorGraphs(namespace string) ProjectMonitorGraphInter
 	}
 }
 
-type IstioMonitorGraphsGetter interface {
-	IstioMonitorGraphs(namespace string) IstioMonitorGraphInterface
+type IstioClusterMonitorGraphsGetter interface {
+	IstioClusterMonitorGraphs(namespace string) IstioClusterMonitorGraphInterface
 }
 
-func (c *Client) IstioMonitorGraphs(namespace string) IstioMonitorGraphInterface {
-	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &IstioMonitorGraphResource, IstioMonitorGraphGroupVersionKind, istioMonitorGraphFactory{})
-	return &istioMonitorGraphClient{
+func (c *Client) IstioClusterMonitorGraphs(namespace string) IstioClusterMonitorGraphInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &IstioClusterMonitorGraphResource, IstioClusterMonitorGraphGroupVersionKind, istioClusterMonitorGraphFactory{})
+	return &istioClusterMonitorGraphClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type IstioProjectMonitorGraphsGetter interface {
+	IstioProjectMonitorGraphs(namespace string) IstioProjectMonitorGraphInterface
+}
+
+func (c *Client) IstioProjectMonitorGraphs(namespace string) IstioProjectMonitorGraphInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &IstioProjectMonitorGraphResource, IstioProjectMonitorGraphGroupVersionKind, istioProjectMonitorGraphFactory{})
+	return &istioProjectMonitorGraphClient{
 		ns:           namespace,
 		client:       c,
 		objectClient: objectClient,

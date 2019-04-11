@@ -755,7 +755,8 @@ func monitorTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.QueryGraphInput{}).
 		MustImport(&Version, v3.QueryClusterGraphOutput{}).
 		MustImport(&Version, v3.QueryProjectGraphOutput{}).
-		MustImport(&Version, v3.QueryIstioGraphOutput{}).
+		MustImport(&Version, v3.QueryIstioClusterGraphOutput{}).
+		MustImport(&Version, v3.QueryIstioProjectGraphOutput{}).
 		MustImport(&Version, v3.QueryClusterMetricInput{}).
 		MustImport(&Version, v3.QueryProjectMetricInput{}).
 		MustImport(&Version, v3.QueryMetricOutput{}).
@@ -799,11 +800,19 @@ func monitorTypes(schemas *types.Schemas) *types.Schemas {
 				},
 			}
 		}).
-		MustImportAndCustomize(&Version, v3.IstioMonitorGraph{}, func(schema *types.Schema) {
+		MustImportAndCustomize(&Version, v3.IstioClusterMonitorGraph{}, func(schema *types.Schema) {
 			schema.CollectionActions = map[string]types.Action{
 				"query": {
 					Input:  "queryGraphInput",
-					Output: "queryIstioGraphOutput",
+					Output: "queryIstioClusterGraphOutput",
+				},
+			}
+		}).
+		MustImportAndCustomize(&Version, v3.IstioProjectMonitorGraph{}, func(schema *types.Schema) {
+			schema.CollectionActions = map[string]types.Action{
+				"query": {
+					Input:  "queryGraphInput",
+					Output: "queryIstioProjectGraphOutput",
 				},
 			}
 		})

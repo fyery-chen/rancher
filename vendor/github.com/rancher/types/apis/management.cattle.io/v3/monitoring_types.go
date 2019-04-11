@@ -36,7 +36,7 @@ const (
 	MonitoringConditionMetricExpressionDeployed  condition.Cond = "MetricExpressionDeployed"
 )
 
-type IstioMonitorGraph struct {
+type IstioProjectMonitorGraph struct {
 	types.Namespaced
 
 	metav1.TypeMeta `json:",inline"`
@@ -44,7 +44,32 @@ type IstioMonitorGraph struct {
 	// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ClusterMonitorGraphSpec `json:"spec"`
+	Spec IstioProjectMonitorGraphSpec `json:"spec"`
+}
+
+type IstioClusterMonitorGraph struct {
+	types.Namespaced
+
+	metav1.TypeMeta `json:",inline"`
+	// Standard object’s metadata. More info:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec IstioClusterMonitorGraphSpec `json:"spec"`
+}
+
+type IstioClusterMonitorGraphSpec struct {
+	ClusterName         string `json:"clusterName" norman:"type=reference[cluster]"`
+	ResourceType        string `json:"resourceType,omitempty"  norman:"type=enum,options=mesh"`
+	DisplayResourceType string `json:"displayResourceType,omitempty" norman:"type=enum,options=mesh"`
+	CommonMonitorGraphSpec
+}
+
+type IstioProjectMonitorGraphSpec struct {
+	ProjectName         string `json:"projectName" norman:"type=reference[project]"`
+	ResourceType        string `json:"resourceType,omitempty" norman:"type=enum,options=mesh"`
+	DisplayResourceType string `json:"displayResourceType,omitempty" norman:"type=enum,options=mesh"`
+	CommonMonitorGraphSpec
 }
 
 type ClusterMonitorGraph struct {
@@ -132,13 +157,23 @@ type QueryClusterGraph struct {
 	Series    []*TimeSeries `json:"series" norman:"type=array[reference[timeSeries]]"`
 }
 
-type QueryIstioGraphOutput struct {
-	Type string            `json:"type,omitempty"`
-	Data []QueryIstioGraph `json:"data,omitempty"`
+type QueryIstioClusterGraphOutput struct {
+	Type string                   `json:"type,omitempty"`
+	Data []QueryIstioClusterGraph `json:"data,omitempty"`
 }
 
-type QueryIstioGraph struct {
-	GraphName string        `json:"graphID" norman:"type=reference[istioMonitorGraph]"`
+type QueryIstioClusterGraph struct {
+	GraphName string        `json:"graphID" norman:"type=reference[istioClusterMonitorGraph]"`
+	Series    []*TimeSeries `json:"series" norman:"type=array[reference[timeSeries]]"`
+}
+
+type QueryIstioProjectGraphOutput struct {
+	Type string                   `json:"type,omitempty"`
+	Data []QueryIstioProjectGraph `json:"data,omitempty"`
+}
+
+type QueryIstioProjectGraph struct {
+	GraphName string        `json:"graphID" norman:"type=reference[istioProjectMonitorGraph]"`
 	Series    []*TimeSeries `json:"series" norman:"type=array[reference[timeSeries]]"`
 }
 

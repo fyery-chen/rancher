@@ -140,8 +140,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ClusterMonitorGraphList{},
 		&ProjectMonitorGraph{},
 		&ProjectMonitorGraphList{},
-		&IstioMonitorGraph{},
-		&IstioMonitorGraphList{},
+		&IstioClusterMonitorGraph{},
+		&IstioClusterMonitorGraphList{},
+		&IstioProjectMonitorGraph{},
+		&IstioProjectMonitorGraphList{},
 		&CloudCredential{},
 		&CloudCredentialList{},
 	)

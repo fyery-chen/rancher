@@ -12,25 +12,25 @@ import (
 	"github.com/rancher/norman/types/convert"
 	"github.com/rancher/rancher/pkg/clustermanager"
 	monitorutil "github.com/rancher/rancher/pkg/monitoring"
+	"github.com/rancher/rancher/pkg/ref"
 	"github.com/rancher/types/apis/management.cattle.io/v3"
 	mgmtclientv3 "github.com/rancher/types/client/management/v3"
 	"github.com/rancher/types/config/dialer"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewIstioClusterGraphHandler(dialerFactory dialer.Factory, clustermanager *clustermanager.Manager) *IstioClusterGraphHandler {
-	return &IstioClusterGraphHandler{
+func NewIstioProjectGraphHandler(dialerFactory dialer.Factory, clustermanager *clustermanager.Manager) *IstioProjectGraphHandler {
+	return &IstioProjectGraphHandler{
 		dialerFactory:  dialerFactory,
 		clustermanager: clustermanager,
 	}
 }
 
-type IstioClusterGraphHandler struct {
+type IstioProjectGraphHandler struct {
 	dialerFactory  dialer.Factory
 	clustermanager *clustermanager.Manager
 }
 
-func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *types.Action, apiContext *types.APIContext) error {
+func (h *IstioProjectGraphHandler) QuerySeriesAction(actionName string, action *types.Action, apiContext *types.APIContext) error {
 	var queryGraphInput v3.QueryGraphInput
 	actionInput, err := parse.ReadBody(apiContext.Request)
 	if err != nil {
@@ -41,7 +41,7 @@ func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *
 		return err
 	}
 
-	inputParser := newClusterGraphInputParser(queryGraphInput)
+	inputParser := newProjectGraphInputParser(queryGraphInput)
 	if err = inputParser.parse(); err != nil {
 		return err
 	}
@@ -52,7 +52,12 @@ func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *
 		return fmt.Errorf("get usercontext failed, %v", err)
 	}
 
-	//rometheusName, prometheusNamespace := monitorutil.IstioMonitoringInfo()
+	check := newAuthChecker(apiContext.Request.Context(), userContext, inputParser.Input, inputParser.ProjectID)
+	if err = check.check(); err != nil {
+		return err
+	}
+
+	//prometheusName, prometheusNamespace := monitorutil.ClusterMonitoringInfo()
 	//token, err := getAuthToken(userContext, prometheusName, prometheusNamespace)
 	//if err != nil {
 	//	return err
@@ -67,24 +72,19 @@ func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *
 		return err
 	}
 
-	mgmtClient := h.clustermanager.ScaledContext.Management
-	nodeLister := mgmtClient.Nodes(metav1.NamespaceAll).Controller().Lister()
-
-	nodeMap, err := getNodeName2InternalIPMap(nodeLister, clusterName)
+	var graphs []mgmtclientv3.IstioProjectMonitorGraph
+	err = access.List(apiContext, apiContext.Version, mgmtclientv3.IstioProjectMonitorGraphType, &types.QueryOptions{Conditions: inputParser.Conditions}, &graphs)
 	if err != nil {
 		return err
 	}
 
-	var graphs []mgmtclientv3.IstioClusterMonitorGraph
-	if err = access.List(apiContext, apiContext.Version, mgmtclientv3.IstioClusterMonitorGraphType, &types.QueryOptions{Conditions: inputParser.Conditions}, &graphs); err != nil {
-		return err
-	}
-
+	mgmtClient := h.clustermanager.ScaledContext.Management
 	var queries []*PrometheusQuery
 	for _, graph := range graphs {
 		g := graph
-		graphName := getRefferenceGraphName(g.ClusterID, g.Name)
-		monitorMetrics, err := graph2Metrics(userContext, mgmtClient, clusterName, g.ResourceType, graphName, g.MetricsSelector, g.DetailsMetricsSelector, inputParser.Input.MetricParams, inputParser.Input.IsDetails)
+		_, projectName := ref.Parse(graph.ProjectID)
+		refName := getRefferenceGraphName(projectName, graph.Name)
+		monitorMetrics, err := graph2Metrics(userContext, mgmtClient, clusterName, g.ResourceType, refName, graph.MetricsSelector, graph.DetailsMetricsSelector, inputParser.Input.MetricParams, inputParser.Input.IsDetails)
 		if err != nil {
 			return err
 		}
@@ -102,13 +102,12 @@ func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *
 		return nil
 	}
 
-	collection := v3.QueryIstioClusterGraphOutput{Type: "collection"}
+	collection := v3.QueryProjectGraphOutput{Type: "collection"}
 	for k, v := range seriesSlice {
-		graphName, resourceType, _ := parseID(k)
-		series := convertInstance(v, nodeMap, resourceType)
-		queryGraph := v3.QueryIstioClusterGraph{
+		graphName, _, _ := parseID(k)
+		queryGraph := v3.QueryProjectGraph{
 			GraphName: graphName,
-			Series:    series,
+			Series:    parseResponse(v),
 		}
 		collection.Data = append(collection.Data, queryGraph)
 	}
@@ -117,7 +116,6 @@ func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *
 	if err != nil {
 		return fmt.Errorf("marshal query series result failed, %v", err)
 	}
-
 	apiContext.Response.Write(res)
 	return nil
 }

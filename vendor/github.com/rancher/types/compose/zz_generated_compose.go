@@ -59,7 +59,8 @@ type Config struct {
 	MonitorMetrics                           map[string]managementClient.MonitorMetric                           `json:"monitorMetrics,omitempty" yaml:"monitorMetrics,omitempty"`
 	ClusterMonitorGraphs                     map[string]managementClient.ClusterMonitorGraph                     `json:"clusterMonitorGraphs,omitempty" yaml:"clusterMonitorGraphs,omitempty"`
 	ProjectMonitorGraphs                     map[string]managementClient.ProjectMonitorGraph                     `json:"projectMonitorGraphs,omitempty" yaml:"projectMonitorGraphs,omitempty"`
-	IstioMonitorGraphs                       map[string]managementClient.IstioMonitorGraph                       `json:"istioMonitorGraphs,omitempty" yaml:"istioMonitorGraphs,omitempty"`
+	IstioClusterMonitorGraphs                map[string]managementClient.IstioClusterMonitorGraph                `json:"istioClusterMonitorGraphs,omitempty" yaml:"istioClusterMonitorGraphs,omitempty"`
+	IstioProjectMonitorGraphs                map[string]managementClient.IstioProjectMonitorGraph                `json:"istioProjectMonitorGraphs,omitempty" yaml:"istioProjectMonitorGraphs,omitempty"`
 	CloudCredentials                         map[string]managementClient.CloudCredential                         `json:"cloudCredentials,omitempty" yaml:"cloudCredentials,omitempty"`
 	ManagementSecrets                        map[string]managementClient.ManagementSecret                        `json:"managementSecrets,omitempty" yaml:"managementSecrets,omitempty"`
 
