@@ -73,11 +73,11 @@ func getPredefinedProjectGraph() []*managementv3.ProjectMonitorGraph {
 	return rtn
 }
 
-func getPredefinedIstioGraph() []*managementv3.IstioMonitorGraph {
+func getPredefinedIstioGraph() []*managementv3.IstioClusterMonitorGraph {
 	yamls := strings.Split(IstioMetricExpression, "\n---\n")
-	var rtn []*managementv3.IstioMonitorGraph
+	var rtn []*managementv3.IstioClusterMonitorGraph
 	for _, yml := range yamls {
-		var tmp managementv3.IstioMonitorGraph
+		var tmp managementv3.IstioClusterMonitorGraph
 		if err := yamlToObject(yml, &tmp); err != nil {
 			panic(err)
 		}
@@ -5444,6 +5444,9 @@ spec:
   legendFormat: CPU cfs throttled([[pod_name]])
   description: workload cpu cfs throttled seconds sum rate
 ---
+
+---
+# Source: metric-expression-cluster/templates/expressionmesh.yaml
 kind: MonitorMetric
 apiVersion: management.cattle.io/v3
 metadata:
