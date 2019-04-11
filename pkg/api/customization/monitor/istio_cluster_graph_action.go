@@ -46,6 +46,9 @@ func (h *IstioClusterGraphHandler) QuerySeriesAction(actionName string, action *
 		return err
 	}
 
+	inputParser.Input.MetricParams["namespace"] = ".*"
+	inputParser.Input.MetricParams["service"] = ".*"
+
 	clusterName := inputParser.ClusterName
 	userContext, err := h.clustermanager.UserContext(clusterName)
 	if err != nil {

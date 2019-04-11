@@ -57,6 +57,13 @@ func (h *IstioProjectGraphHandler) QuerySeriesAction(actionName string, action *
 		return err
 	}
 
+	if inputParser.Input.MetricParams["namespace"] == "" {
+		return fmt.Errorf("no namespace found")
+	}
+	if inputParser.Input.MetricParams["service"] == "" {
+		inputParser.Input.MetricParams["service"] = ".*"
+	}
+
 	//prometheusName, prometheusNamespace := monitorutil.ClusterMonitoringInfo()
 	//token, err := getAuthToken(userContext, prometheusName, prometheusNamespace)
 	//if err != nil {
