@@ -60,15 +60,15 @@ type IstioClusterMonitorGraph struct {
 
 type IstioClusterMonitorGraphSpec struct {
 	ClusterName         string `json:"clusterName" norman:"type=reference[cluster]"`
-	ResourceType        string `json:"resourceType,omitempty"  norman:"type=enum,options=mesh"`
-	DisplayResourceType string `json:"displayResourceType,omitempty" norman:"type=enum,options=mesh"`
+	ResourceType        string `json:"resourceType,omitempty"  norman:"type=enum,options=mesh|cluster"`
+	DisplayResourceType string `json:"displayResourceType,omitempty" norman:"type=enum,options=mesh|cluster"`
 	CommonMonitorGraphSpec
 }
 
 type IstioProjectMonitorGraphSpec struct {
 	ProjectName         string `json:"projectName" norman:"type=reference[project]"`
-	ResourceType        string `json:"resourceType,omitempty" norman:"type=enum,options=mesh"`
-	DisplayResourceType string `json:"displayResourceType,omitempty" norman:"type=enum,options=mesh"`
+	ResourceType        string `json:"resourceType,omitempty" norman:"type=enum,options=mesh|project|service"`
+	DisplayResourceType string `json:"displayResourceType,omitempty" norman:"type=enum,options=mesh|project|service"`
 	CommonMonitorGraphSpec
 }
 
