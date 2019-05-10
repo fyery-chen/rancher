@@ -1,4 +1,4 @@
-package common
+package istio
 
 import (
 	"encoding/json"
@@ -25,11 +25,11 @@ func getPredefinedIstioMetrics() []*managementv3.MonitorMetric {
 	return rtn
 }
 
-func getPredefinedIstioClusterGraph() []*managementv3.IstioClusterMonitorGraph {
+func getPredefinedIstioClusterGraph() []*managementv3.ClusterMonitorGraph {
 	yamls := strings.Split(IstioClusterGraphTemplate, "\n---\n")
-	var rtn []*managementv3.IstioClusterMonitorGraph
+	var rtn []*managementv3.ClusterMonitorGraph
 	for _, yml := range yamls {
-		var tmp managementv3.IstioClusterMonitorGraph
+		var tmp managementv3.ClusterMonitorGraph
 		if err := yamlToObject(yml, &tmp); err != nil {
 			panic(err)
 		}
@@ -42,11 +42,11 @@ func getPredefinedIstioClusterGraph() []*managementv3.IstioClusterMonitorGraph {
 	return rtn
 }
 
-func getPredefinedIstioProjectGraph() []*managementv3.IstioProjectMonitorGraph {
+func getPredefinedIstioProjectGraph() []*managementv3.ClusterMonitorGraph {
 	yamls := strings.Split(IstioProjectGraphTemplate, "\n---\n")
-	var rtn []*managementv3.IstioProjectMonitorGraph
+	var rtn []*managementv3.ClusterMonitorGraph
 	for _, yml := range yamls {
-		var tmp managementv3.IstioProjectMonitorGraph
+		var tmp managementv3.ClusterMonitorGraph
 		if err := yamlToObject(yml, &tmp); err != nil {
 			panic(err)
 		}
@@ -526,7 +526,7 @@ spec:
 
 	IstioClusterGraphTemplate = `
 apiVersion: management.cattle.io/v3
-kind: IstioClusterMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -535,7 +535,7 @@ metadata:
     component: istio
   name: istio-4xxs
 spec:
-  resourceType: mesh
+  resourceType: istiocluster
   priority: 800
   title: istio-4xxs
   metricsSelector:
@@ -550,7 +550,7 @@ spec:
     level: cluster
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioClusterMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -559,7 +559,7 @@ metadata:
     component: istio
   name: istio-5xxs
 spec:
-  resourceType: mesh
+  resourceType: istiocluster
   priority: 800
   title: istio-5xxs
   metricsSelector:
@@ -574,7 +574,7 @@ spec:
     level: cluster
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioClusterMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -583,7 +583,7 @@ metadata:
     component: istio
   name: istio-global-success-rate
 spec:
-  resourceType: mesh
+  resourceType: istiocluster
   priority: 800
   title: istio-global-success-rate
   metricsSelector:
@@ -601,7 +601,7 @@ spec:
 
 	IstioProjectGraphTemplate = `
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -610,7 +610,7 @@ metadata:
     component: istio
   name: istio-4xxs-client
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-4xxs-client
   metricsSelector:
@@ -625,7 +625,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -634,7 +634,7 @@ metadata:
     component: istio
   name: istio-5xxs-client
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-5xxs-client
   metricsSelector:
@@ -649,7 +649,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -658,7 +658,7 @@ metadata:
     component: istio
   name: istio-global-success-rate-client
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-global-success-rate-client
   metricsSelector:
@@ -673,7 +673,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -682,7 +682,7 @@ metadata:
     component: istio
   name: istio-global-request-volume-client
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-global-request-volume-client
   metricsSelector:
@@ -697,7 +697,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -706,7 +706,7 @@ metadata:
     component: istio
   name: istio-client-request-duration
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-client-request-duration
   metricsSelector:
@@ -721,7 +721,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -730,7 +730,7 @@ metadata:
     component: istio
   name: istio-4xxs-service
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-4xxs-service
   metricsSelector:
@@ -745,7 +745,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -754,7 +754,7 @@ metadata:
     component: istio
   name: istio-5xxs-service
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-5xxs-service
   metricsSelector:
@@ -769,7 +769,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -778,7 +778,7 @@ metadata:
     component: istio
   name: istio-global-success-rate-service
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-global-success-rate-service
   metricsSelector:
@@ -793,7 +793,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -802,7 +802,7 @@ metadata:
     component: istio
   name: istio-global-request-volume-service
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-global-request-volume-service
   metricsSelector:
@@ -817,7 +817,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -826,7 +826,7 @@ metadata:
     component: istio
   name: istio-server-request-duration
 spec:
-  resourceType: service 
+  resourceType: istioservice 
   priority: 800
   title: istio-server-request-duration
   metricsSelector:
@@ -841,7 +841,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -850,7 +850,7 @@ metadata:
     component: istio
   name: istio-4xxs
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-4xxs
   metricsSelector:
@@ -865,7 +865,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -874,7 +874,7 @@ metadata:
     component: istio
   name: istio-4xxs-top10
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-4xxs-top10
   metricsSelector:
@@ -889,7 +889,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -898,7 +898,7 @@ metadata:
     component: istio
   name: istio-5xxs
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-5xxs
   metricsSelector:
@@ -913,7 +913,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -922,7 +922,7 @@ metadata:
     component: istio
   name: istio-5xxs-top10
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-5xxs-top10
   metricsSelector:
@@ -937,7 +937,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -946,7 +946,7 @@ metadata:
     component: istio
   name: istio-global-success-rate
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-global-success-rate
   metricsSelector:
@@ -961,7 +961,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -970,7 +970,7 @@ metadata:
     component: istio
   name: istio-global-request-volume
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-global-request-volume
   metricsSelector:
@@ -985,7 +985,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -994,7 +994,7 @@ metadata:
     component: istio
   name: istio-global-request-volume-top10
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-global-request-volume-top10
   metricsSelector:
@@ -1009,7 +1009,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -1018,7 +1018,7 @@ metadata:
     component: istio
   name: istio-request-duration-p50-top10
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-request-duration-p50-top10
   metricsSelector:
@@ -1033,7 +1033,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -1042,7 +1042,7 @@ metadata:
     component: istio
   name: istio-request-duration-p90-top10
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-request-duration-p90-top10
   metricsSelector:
@@ -1057,7 +1057,7 @@ spec:
     level: project
 ---
 apiVersion: management.cattle.io/v3
-kind: IstioProjectMonitorGraph
+kind: ClusterMonitorGraph
 metadata:
   labels:
     app: metric-expression
@@ -1066,7 +1066,7 @@ metadata:
     component: istio
   name: istio-request-duration-p99-top10
 spec:
-  resourceType: project 
+  resourceType: istioproject 
   priority: 800
   title: istio-request-duration-p99-top10
   metricsSelector:

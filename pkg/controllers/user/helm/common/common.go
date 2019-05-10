@@ -20,11 +20,6 @@ import (
 	"github.com/rancher/rancher/pkg/settings"
 	"github.com/rancher/types/apis/project.cattle.io/v3"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	mgmtv3 "github.com/rancher/types/apis/management.cattle.io/v3"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -36,12 +31,6 @@ const (
 
 	systemCatalogName     = "system-library"
 	systemDefaultRegistry = "global.systemDefaultRegistry"
-)
-
-var (
-	preDefinedIstioMetrics      = getPredefinedIstioMetrics()
-	preDefinedIstioClusterGraph = getPredefinedIstioClusterGraph()
-	PreDefinedIstioProjectGraph = getPredefinedIstioProjectGraph()
 )
 
 func ParseExternalID(externalID string) (string, string, error) {
@@ -124,79 +113,6 @@ func GenerateRandomPort() string {
 		ln.Close()
 		return strconv.Itoa(port)
 	}
-}
-
-func IsMetricExpressionDeployed(clusterName string, projectClient mgmtv3.ProjectInterface, istioClusterGraphClient mgmtv3.IstioClusterMonitorGraphInterface, istioProjectGraphClient mgmtv3.IstioProjectMonitorGraphInterface, istioMetricsClient mgmtv3.MonitorMetricInterface, obj *v3.App) error {
-	_, err := v3.IstioConditionMetricExpressionDeployed.DoUntilTrue(obj, func() (runtime.Object, error) {
-		for _, metric := range preDefinedIstioMetrics {
-			newObj := metric.DeepCopy()
-			newObj.Namespace = clusterName
-			if _, err := istioMetricsClient.Create(newObj); err != nil && !apierrors.IsAlreadyExists(err) {
-				return obj, err
-			}
-		}
-		for _, clusterGraph := range preDefinedIstioClusterGraph {
-			newObj := clusterGraph.DeepCopy()
-			newObj.Namespace = clusterName
-			if _, err := istioClusterGraphClient.Create(newObj); err != nil && !apierrors.IsAlreadyExists(err) {
-				return obj, err
-			}
-		}
-
-		projects, err := projectClient.List(metav1.ListOptions{})
-		if err != nil {
-			return obj, err
-		}
-		for _, projectGraph := range PreDefinedIstioProjectGraph {
-			newObj := projectGraph.DeepCopy()
-			for _, project := range projects.Items {
-				projectName := fmt.Sprintf("%s:%s", clusterName, project.Name)
-				newObj.Namespace = project.Name
-				newObj.Spec.ProjectName = projectName
-				if _, err := istioProjectGraphClient.Create(newObj); err != nil && !apierrors.IsAlreadyExists(err) {
-					return obj, err
-				}
-			}
-		}
-		return obj, nil
-	})
-
-	if err != nil {
-		return errors.Wrapf(err, "failed to deploy istio metric expression into Cluster %s", clusterName)
-	}
-
-	logrus.Infof("deploy istio metric expression into CLuster %s successfully", clusterName)
-
-	return nil
-}
-
-func IsMetricExpressionWithdraw(clusterName string, projectClient mgmtv3.ProjectInterface, istioClusterGraphClient mgmtv3.IstioClusterMonitorGraphInterface, istioProjectGraphClient mgmtv3.IstioProjectMonitorGraphInterface, istioMetricsClient mgmtv3.MonitorMetricInterface, obj *v3.App) error {
-	for _, metric := range preDefinedIstioMetrics {
-		if err := istioMetricsClient.DeleteNamespaced(clusterName, metric.Name, &metav1.DeleteOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
-			return err
-		}
-	}
-	for _, clusterGraph := range preDefinedIstioClusterGraph {
-		if err := istioClusterGraphClient.DeleteNamespaced(clusterName, clusterGraph.Name, &metav1.DeleteOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
-			return err
-		}
-	}
-
-	projects, err := projectClient.List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	for _, projectGraph := range PreDefinedIstioProjectGraph {
-		for _, project := range projects.Items {
-			if err := istioProjectGraphClient.DeleteNamespaced(project.Name, projectGraph.Name, &metav1.DeleteOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
-				return err
-			}
-		}
-
-	}
-	logrus.Infof("withdraw istio metric expression from CLuster %s successfully", clusterName)
-
-	return nil
 }
 
 func InstallCharts(rootDir, port string, obj *v3.App) error {

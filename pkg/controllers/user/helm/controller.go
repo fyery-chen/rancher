@@ -6,14 +6,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/api/core/v1"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
 	"time"
+
+	"k8s.io/api/core/v1"
 
 	"github.com/rancher/rancher/pkg/controllers/management/compose/common"
 	"github.com/rancher/rancher/pkg/ref"
@@ -29,8 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-
-	helmcommon "github.com/rancher/rancher/pkg/controllers/user/helm/common"
 )
 
 const (
@@ -62,10 +60,6 @@ func Register(ctx context.Context, user *config.UserContext, kubeConfigGetter co
 		AppGetter:                user.Management.Project,
 		NsLister:                 user.Core.Namespaces("").Controller().Lister(),
 		NsClient:                 user.Core.Namespaces(""),
-		istioClusterGraphClient:  user.Management.Management.IstioClusterMonitorGraphs(metav1.NamespaceAll),
-		istioProjectGraphClient:  user.Management.Management.IstioProjectMonitorGraphs(metav1.NamespaceAll),
-		istioMonitorMetricClient: user.Management.Management.MonitorMetrics(metav1.NamespaceAll),
-		projectGetter:            user.Management.Management.Projects(user.ClusterName),
 	}
 	appClient.AddClusterScopedLifecycle(ctx, "helm-controller", user.ClusterName, stackLifecycle)
 
@@ -208,26 +202,7 @@ func (l *Lifecycle) Updated(obj *v3.App) (runtime.Object, error) {
 		return result, err
 	}
 
-	l.deployIstioExpression(obj)
-
 	return result, nil
-}
-
-func (l *Lifecycle) deployIstioExpression(obj *v3.App) {
-	values, err := url.Parse(obj.Spec.ExternalID)
-	if err != nil {
-		logrus.Errorf("check catalog type failed: %s", err.Error())
-	}
-
-	catalogWithNamespace := values.Query().Get("catalog")
-	split := strings.SplitN(catalogWithNamespace, "/", 2)
-	catalog := split[len(split)-1]
-
-	template := values.Query().Get("template")
-
-	if catalog == "library" && template == "rancher-istio" {
-		helmcommon.IsMetricExpressionDeployed(l.ClusterName, l.projectGetter, l.istioClusterGraphClient, l.istioProjectGraphClient, l.istioMonitorMetricClient, obj)
-	}
 }
 
 func (l *Lifecycle) DeployApp(obj *v3.App) (*v3.App, error) {
@@ -318,26 +293,7 @@ func (l *Lifecycle) Remove(obj *v3.App) (runtime.Object, error) {
 		return obj, err
 	}
 
-	l.withdrawIstioExpression(obj)
-
 	return obj, nil
-}
-
-func (l *Lifecycle) withdrawIstioExpression(obj *v3.App) {
-	values, err := url.Parse(obj.Spec.ExternalID)
-	if err != nil {
-		logrus.Errorf("check catalog type failed: %s", err.Error())
-	}
-
-	catalogWithNamespace := values.Query().Get("catalog")
-	split := strings.SplitN(catalogWithNamespace, "/", 2)
-	catalog := split[len(split)-1]
-
-	template := values.Query().Get("template")
-
-	if catalog == "library" && template == "rancher-istio" {
-		helmcommon.IsMetricExpressionWithdraw(l.ClusterName, l.projectGetter, l.istioClusterGraphClient, l.istioProjectGraphClient, l.istioMonitorMetricClient, obj)
-	}
 }
 
 func (l *Lifecycle) Run(obj *v3.App, template, templateDir, notes string) error {
